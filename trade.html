@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Trade</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root { --bg: #0b0e11; --card: #181a20; --text: #ffffff; --muted: #848e9c; --green: #0ecb81; --red: #f6465d; --purple: #5b41ff; }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, sans-serif; -webkit-tap-highlight-color: transparent; }
+        body { background: var(--bg); color: var(--text); padding-bottom: 180px; min-height: 100vh; }
+        
+        .loader-overlay { position: fixed; inset: 0; background: var(--bg); z-index: 9999; display: flex; justify-content: center; align-items: center; transition: opacity 0.5s; }
+        .loader { width: 40px; height: 40px; border: 4px solid #2b3139; border-top: 4px solid var(--purple); border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .fade-in { animation: fadeIn 0.6s ease-out forwards; opacity: 0; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+
+        .header { display: flex; justify-content: space-between; padding: 20px; align-items: center; }
+        .header h2 { font-size: 18px; }
+        .header-icons { display: flex; gap: 15px; font-size: 20px; color: var(--muted); }
+        
+        .balance-card { margin: 0 20px 20px 20px; background: var(--card); padding: 20px; border-radius: 12px; border: 1px solid #2b3139; }
+        .balance-label { color: var(--muted); font-size: 14px; margin-bottom: 5px; }
+        .balance-amount { font-size: 32px; font-weight: bold; }
+        
+        .section-title { padding: 0 20px; font-size: 16px; font-weight: 600; margin-bottom: 15px; }
+        
+        .coin-list { padding: 0 20px; }
+        .coin-item { display: flex; justify-content: space-between; align-items: center; padding: 15px 0; border-bottom: 1px solid #1e2329; cursor: pointer; }
+        .coin-info { display: flex; align-items: center; gap: 12px; }
+        .coin-icon { width: 36px; height: 36px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 16px; font-weight: bold; color: white; }
+        .coin-details h4 { font-size: 15px; display: flex; align-items: center; gap: 8px;}
+        .lev-badge { background: #2b3139; font-size: 10px; padding: 2px 6px; border-radius: 4px; color: var(--muted); }
+        .coin-details p { font-size: 12px; color: var(--muted); }
+        .coin-price { text-align: right; }
+        .coin-price h4 { font-size: 15px; }
+        .coin-price p { font-size: 13px; }
+        
+        .action-bar { position: fixed; bottom: 95px; left: 50%; transform: translateX(-50%); width: calc(100% - 40px); max-width: 450px; padding: 0 20px; display: flex; gap: 10px; z-index: 99; background: linear-gradient(transparent, var(--bg) 40%); padding-top: 20px; padding-bottom: 10px;}
+        .btn-action { flex: 1; padding: 16px; border-radius: 30px; border: none; font-size: 16px; font-weight: bold; color: white; cursor: pointer; }
+        .btn-long { background: var(--green); }
+        .btn-short { background: var(--red); }
+
+        .bottom-nav { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); width: calc(100% - 40px); max-width: 450px; background: rgba(30, 35, 41, 0.95); backdrop-filter: blur(15px); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 40px; box-shadow: 0 10px 30px rgba(0,0,0,0.8); display: flex; justify-content: space-around; align-items: center; padding: 10px 0; z-index: 999;}
+        .nav-bg { position: absolute; top: 8px; left: 0; width: 55px; height: 45px; background: #2b3139; border-radius: 25px; transition: transform 0.4s cubic-bezier(0.68, -0.55, 0.27, 1.55); z-index: 0; }
+        .nav-item { color: var(--muted); font-size: 22px; cursor: pointer; text-decoration: none; display: flex; justify-content: center; align-items: center; width: 64px; height: 45px; z-index: 1; transition: color 0.3s;}
+        .nav-item.active { color: white; }
+        .nav-item:active { transform: scale(0.9); }
+
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 200; justify-content: center; align-items: flex-end; }
+        .modal-content { background: var(--card); width: 100%; border-radius: 20px 20px 0 0; padding: 20px; padding-bottom: 40px; animation: slideUp 0.3s ease-out; }
+        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+        .modal-header { display: flex; justify-content: space-between; margin-bottom: 15px; }
+        .modal-header h3 { font-size: 18px; }
+        .modal-header i { cursor: pointer; font-size: 20px; color: var(--muted); }
+        .picker-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .picker-item { background: #1e2329; padding: 12px; border-radius: 8px; display: flex; align-items: center; gap: 8px; cursor: pointer; }
+        .picker-item:active { background: #2b3139; }
+    </style>
+</head>
+<body>
+
+<div class="loader-overlay" id="loader"><div class="loader"></div></div>
+
+<div class="fade-in">
+    <div class="header">
+        <div><i class="fa-solid fa-clock-rotate-left"></i></div>
+        <h2>Perps</h2>
+        <div class="header-icons"><i class="fa-solid fa-magnifying-glass"></i></div>
+    </div>
+
+    <div class="balance-card">
+        <div class="balance-label">Available Balance</div>
+        <div class="balance-amount" id="user-balance">$0.00</div>
+    </div>
+
+    <div class="section-title">Popular Markets</div>
+    <div class="coin-list" id="trade-list"></div>
+</div>
+
+<div class="action-bar">
+    <button class="btn-action btn-long" onclick="openPickerModal('Long')">Long ↗</button>
+    <button class="btn-action btn-short" onclick="openPickerModal('Short')">Short ↘</button>
+</div>
+
+<div class="modal" id="picker-modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 id="picker-title">Select Asset</h3>
+            <i class="fa-solid fa-xmark" onclick="document.getElementById('picker-modal').style.display='none'"></i>
+        </div>
+        <div class="picker-grid" id="picker-grid"></div>
+    </div>
+</div>
+
+<!-- UPDATED BOTTOM NAV WITH SWAP -->
+<div class="bottom-nav">
+    <div class="nav-bg" id="nav-bg"></div>
+    <a href="#" class="nav-item" onclick="navigate(event, 'index.html')"><i class="fa-solid fa-house"></i></a>
+    <a href="#" class="nav-item" onclick="navigate(event, 'markets.html')"><i class="fa-solid fa-arrow-trend-up"></i></a>
+    <!-- Changed Infinity to Rotate (Swap) -->
+    <a href="#" class="nav-item" onclick="navigate(event, 'swap.html')"><i class="fa-solid fa-rotate"></i></a>
+    <a href="#" class="nav-item" onclick="alert('Search coming soon!')"><i class="fa-solid fa-magnifying-glass"></i></a>
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+    import { getFirestore, doc, getDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyAMucqvSoBlUo5jn5Pu4ClQIGRlInu55mQ", authDomain: "project-app-259f2.firebaseapp.com",
+      projectId: "project-app-259f2", storageBucket: "project-app-259f2.firebasestorage.app",
+      messagingSenderId: "389607996830", appId: "1:389607996830:web:a9e456c60e4608f1a9ea8f"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    function setPillPosition(activeItem) {
+        const navBg = document.getElementById('nav-bg');
+        const translateX = activeItem.offsetLeft + (activeItem.offsetWidth / 2) - (navBg.offsetWidth / 2);
+        navBg.style.transform = `translateX(${translateX}px)`;
+    }
+
+    window.addEventListener('load', () => {
+        document.getElementById('loader').style.opacity = '0';
+        setTimeout(() => document.getElementById('loader').style.display = 'none', 500);
+        
+        setTimeout(() => {
+            const activeItem = document.querySelector('.nav-item.active');
+            if (activeItem) setPillPosition(activeItem);
+        }, 100);
+    });
+
+    window.navigate = function(event, url) {
+        event.preventDefault();
+        const activeItem = event.currentTarget;
+        setPillPosition(activeItem);
+        
+        document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+        activeItem.classList.add('active');
+        setTimeout(() => window.location.href = url, 300);
+    }
+
+    const getCoinStyle = (symbol) => {
+        const styles = {
+            'BTC': { bg: '#f7931a', letter: 'B' },
+            'SOL': { bg: '#14f195', letter: 'S' },
+            'USDT': { bg: '#26a17b', letter: 'T' },
+            'AVAX': { bg: '#e84142', letter: 'A' },
+            'LINK': { bg: '#2a5ada', letter: 'L' },
+            'DOGE': { bg: '#c2a633', letter: 'D' }
+        };
+        return styles[symbol] || { bg: '#2b3139', letter: symbol.charAt(0) };
+    };
+
+    const tradeData = [
+        { symbol: 'BTC', name: 'Bitcoin', price: 79564, change: -1.06, lev: 40, vol: '2.20B' },
+        { symbol: 'SOL', name: 'Solana', price: 145.2, change: 4.5, lev: 20, vol: '450M' },
+        { symbol: 'USDT', name: 'Tether', price: 1.00, change: 0.01, lev: 100, vol: '5.20B' },
+        { symbol: 'AVAX', name: 'Avalanche', price: 35.10, change: -1.10, lev: 15, vol: '120M' },
+        { symbol: 'LINK', name: 'Chainlink', price: 14.50, change: 3.10, lev: 20, vol: '85M' },
+        { symbol: 'DOGE', name: 'Dogecoin', price: 0.12, change: 5.40, lev: 50, vol: '300M' }
+    ];
+
+    const listContainer = document.getElementById('trade-list');
+    listContainer.innerHTML = tradeData.map(coin => {
+        const isUp = coin.change >= 0;
+        const colorClass = isUp ? 'color: var(--green);' : 'color: var(--red);';
+        const style = getCoinStyle(coin.symbol);
+        return `
+            <div class="coin-item" onclick="window.location.href='chart.html?symbol=${coin.symbol}&price=${coin.price}'">
+                <div class="coin-info">
+                    <div class="coin-icon" style="background: ${style.bg};">${style.letter}</div>
+                    <div class="coin-details">
+                        <h4>${coin.symbol} <span class="lev-badge">${coin.lev}x</span></h4>
+                        <p>$${coin.vol} Vol</p>
+                    </div>
+                </div>
+                <div class="coin-price">
+                    <h4>$${coin.price.toLocaleString()}</h4>
+                    <p style="${colorClass}">${isUp ? '+' : ''}${coin.change}%</p>
+                </div>
+            </div>
+        `;
+    }).join('');
+
+    const pickerGrid = document.getElementById('picker-grid');
+    pickerGrid.innerHTML = tradeData.map(coin => {
+        const style = getCoinStyle(coin.symbol);
+        return `
+            <div class="picker-item" onclick="goToChart('${coin.symbol}', ${coin.price})">
+                <div class="coin-icon" style="background: ${style.bg}; width: 24px; height: 24px; font-size: 12px;">${style.letter}</div>
+                <span style="font-weight: bold;">${coin.symbol}</span>
+            </div>
+        `;
+    }).join('');
+
+    window.openPickerModal = function(type) {
+        document.getElementById('picker-title').innerText = `Select Asset to ${type}`;
+        document.getElementById('picker-modal').style.display = 'flex';
+    }
+
+    window.goToChart = function(symbol, price) {
+        window.location.href = `chart.html?symbol=${symbol}&price=${price}`;
+    }
+
+    onAuthStateChanged(auth, async (user) => {
+        if (user) {
+            const userDoc = await getDoc(doc(db, "users", user.uid));
+            if (userDoc.exists()) {
+                const walletId = userDoc.data().activeWalletId;
+                const walletDoc = await getDoc(doc(db, "wallets", walletId));
+                
+                if (walletDoc.exists()) {
+                    const balances = walletDoc.data().balances || {};
+                    
+                    const coinsSnapshot = await getDocs(collection(db, "coins"));
+                    const dbPrices = {};
+                    coinsSnapshot.forEach(d => dbPrices[d.id] = d.data().price);
+
+                    const fallbackPrices = { 
+                        'BTC': 80000, 'SOL': 145.20, 'USDT': 1.00, 'XRP': 0.52, 'ETH': 2300, 
+                        'BNB': 580.10, 'ADA': 0.45, 'DOGE': 0.12, 'AVAX': 35.10, 'LINK': 14.50 
+                    };
+
+                    let totalUSD = 0;
+                    for (const [coin, amount] of Object.entries(balances)) {
+                        const price = dbPrices[coin] || fallbackPrices[coin] || 0;
+                        totalUSD += amount * price;
+                    }
+                    
+                    document.getElementById('user-balance').innerText = '$' + totalUSD.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                }
+            }
+        }
+    });
+</script>
+<!-- GLOBAL TRADE RESOLVER -->
+<script type="module" src="trade-resolver.js"></script>
+</body>
+</html>

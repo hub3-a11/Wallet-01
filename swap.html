@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Swap</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root { --bg: #0b0e11; --card: #1e2029; --text: #ffffff; --muted: #848e9c; --green: #0ecb81; --purple: #5b41ff; }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; -webkit-tap-highlight-color: transparent; }
+        body { background: var(--bg); color: var(--text); display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+        
+        .header { display: flex; justify-content: space-between; align-items: center; padding: 20px; }
+        .back-btn { background: #1e2329; width: 40px; height: 40px; border-radius: 50%; display: flex; justify-content: center; align-items: center; cursor: pointer; font-size: 18px; border: 1px solid #2b3139;}
+        .header-title { font-size: 16px; font-weight: 600; }
+        .settings-btn { background: #1e2329; width: 40px; height: 40px; border-radius: 50%; display: flex; justify-content: center; align-items: center; cursor: pointer; font-size: 18px; border: 1px solid #2b3139;}
+
+        .swap-container { padding: 0 20px; flex: 1; display: flex; flex-direction: column; }
+        
+        .input-card { background: var(--card); border-radius: 16px; padding: 20px; position: relative; }
+        .input-card .top-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .amount-display { font-size: 32px; font-weight: 500; color: var(--text); }
+        .token-select-btn { background: #2b3139; border: none; color: white; padding: 8px 16px; border-radius: 20px; display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; cursor: pointer; }
+        .token-select-btn.empty { background: var(--purple); color: white; }
+        .token-icon { width: 24px; height: 24px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 12px; font-weight: bold; color: white; }
+        
+        .usd-value { color: var(--muted); font-size: 14px; }
+        .balance-value { color: var(--muted); font-size: 14px; display: flex; align-items: center; gap: 5px; }
+
+        .swap-arrow { display: flex; justify-content: center; margin: -12px 0; z-index: 2; }
+        .swap-arrow-btn { background: var(--bg); border: 4px solid var(--bg); width: 40px; height: 40px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 16px; color: var(--text); }
+
+        .numpad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; padding: 30px 40px; margin-top: auto; }
+        .num-btn { background: transparent; border: none; color: var(--text); font-size: 28px; font-weight: 500; cursor: pointer; padding: 15px; border-radius: 50%; transition: background 0.1s; }
+        .num-btn:active { background: rgba(255,255,255,0.1); }
+        .num-btn.action { font-size: 20px; color: var(--muted); }
+
+        .slider-container { padding: 0 20px 30px 20px; }
+        .slider-track { background: var(--card); border-radius: 30px; height: 64px; position: relative; display: flex; align-items: center; padding: 4px; overflow: hidden; border: 1px solid #2b3139;}
+        .slider-text { position: absolute; width: 100%; text-align: center; color: var(--muted); font-size: 16px; font-weight: 500; pointer-events: none; }
+        .slider-thumb { width: 56px; height: 56px; background: #2b3139; border-radius: 50%; display: flex; justify-content: center; align-items: center; position: relative; z-index: 2; cursor: grab; transition: transform 0.1s; }
+        .slider-thumb i { color: var(--text); font-size: 20px; }
+        .slider-thumb.disabled { cursor: not-allowed; opacity: 0.5; }
+        
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 100; justify-content: center; align-items: flex-end; }
+        .modal-content { background: var(--bg); padding: 20px; border-radius: 20px 20px 0 0; width: 100%; max-width: 500px; height: 70vh; display: flex; flex-direction: column; }
+        .modal-header { display: flex; justify-content: space-between; margin-bottom: 20px; }
+        .modal-header h3 { font-size: 18px; }
+        .modal-header i { cursor: pointer; font-size: 20px; color: var(--muted); }
+        .token-list { overflow-y: auto; flex: 1; }
+        .token-item { display: flex; justify-content: space-between; align-items: center; padding: 15px 0; border-bottom: 1px solid #1e2329; cursor: pointer; }
+        .token-item:active { background: #1e2329; }
+        .token-item-left { display: flex; align-items: center; gap: 12px; }
+        .token-item-left h4 { font-size: 16px; }
+        .token-item-left p { font-size: 12px; color: var(--muted); }
+        .token-item-right { text-align: right; font-size: 14px; }
+
+        .success-overlay { position: fixed; inset: 0; background: rgba(11, 14, 17, 0.95); z-index: 10000; display: none; justify-content: center; align-items: center; flex-direction: column; padding: 20px; }
+        .success-overlay.show { display: flex; animation: fadeIn 0.3s ease-out; }
+        
+        .check-circle { width: 100px; height: 100px; border-radius: 50%; background: rgba(14, 203, 129, 0.1); border: 2px solid var(--green); display: flex; justify-content: center; align-items: center; position: relative; margin-bottom: 25px; animation: popIn 0.5s cubic-bezier(0.16,1,0.3,1); }
+        .check-circle::before { content: ''; position: absolute; inset: -10px; border-radius: 50%; border: 2px solid rgba(14, 203, 129, 0.3); animation: ripple 1.5s ease-out infinite; }
+        
+        @keyframes ripple { 0% { transform: scale(1); opacity: 0.8; } 100% { transform: scale(1.5); opacity: 0; } }
+        @keyframes popIn { from { transform: scale(0.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        
+        .check-svg { width: 50px; height: 50px; }
+        .check-svg path { stroke: var(--green); stroke-width: 4; fill: none; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 60; stroke-dashoffset: 60; animation: drawCheck 0.6s 0.3s ease forwards; }
+        
+        @keyframes drawCheck { to { stroke-dashoffset: 0; } }
+        
+        .success-title { font-size: 24px; font-weight: bold; margin-bottom: 10px; color: white; }
+        .success-desc { font-size: 15px; color: var(--muted); margin-bottom: 30px; text-align: center; line-height: 1.5; }
+        .success-desc strong { color: var(--green); }
+        
+        .btn-primary { width: 100%; max-width: 200px; padding: 15px; background: var(--purple); color: white; border: none; border-radius: 8px; font-weight: bold; font-size: 16px; cursor: pointer; transition: 0.2s;}
+        .btn-primary:active { transform: scale(0.98); }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <!-- The Back button goes to dashboard.html -->
+    <div class="back-btn" onclick="window.location.href='dashboard.html'"><i class="fa-solid fa-arrow-left"></i></div>
+    <div class="header-title">Swap</div>
+    <div class="settings-btn"><i class="fa-solid fa-sliders"></i></div>
+</div>
+
+<div class="swap-container">
+    <div class="input-card" style="margin-bottom: 10px;">
+        <div class="top-row">
+            <div class="amount-display" id="from-amount">0</div>
+            <button class="token-select-btn empty" id="from-token-btn" onclick="openTokenModal('from')">
+                Select token <i class="fa-solid fa-chevron-right" style="font-size: 10px;"></i>
+            </button>
+        </div>
+        <div style="display: flex; justify-content: space-between;">
+            <div class="usd-value" id="from-usd">$0.00</div>
+            <div class="balance-value">Balance: <span id="from-balance">0</span></div>
+        </div>
+    </div>
+
+    <div class="swap-arrow">
+        <div class="swap-arrow-btn"><i class="fa-solid fa-arrow-down"></i></div>
+    </div>
+
+    <div class="input-card">
+        <div class="top-row">
+            <div class="amount-display" id="to-amount">0</div>
+            <button class="token-select-btn" id="to-token-btn" onclick="openTokenModal('to')">
+                Select token <i class="fa-solid fa-chevron-right" style="font-size: 10px;"></i>
+            </button>
+        </div>
+        <div style="display: flex; justify-content: space-between;">
+            <div class="usd-value" id="to-usd">$0.00</div>
+            <div class="balance-value">Balance: <span id="to-balance">0</span></div>
+        </div>
+    </div>
+</div>
+
+<div class="numpad">
+    <button class="num-btn" onclick="pressNum('1')">1</button>
+    <button class="num-btn" onclick="pressNum('2')">2</button>
+    <button class="num-btn" onclick="pressNum('3')">3</button>
+    <button class="num-btn" onclick="pressNum('4')">4</button>
+    <button class="num-btn" onclick="pressNum('5')">5</button>
+    <button class="num-btn" onclick="pressNum('6')">6</button>
+    <button class="num-btn" onclick="pressNum('7')">7</button>
+    <button class="num-btn" onclick="pressNum('8')">8</button>
+    <button class="num-btn" onclick="pressNum('9')">9</button>
+    <button class="num-btn action" onclick="pressNum('.')">.</button>
+    <button class="num-btn" onclick="pressNum('0')">0</button>
+    <button class="num-btn action" onclick="backspace()"><i class="fa-solid fa-delete-left"></i></button>
+</div>
+
+<div class="slider-container">
+    <div class="slider-track" id="slider-track">
+        <div class="slider-text" id="slider-text">Slide to Swap</div>
+        <div class="slider-thumb disabled" id="slider-thumb"><i class="fa-solid fa-chevron-right"></i></div>
+    </div>
+</div>
+
+<div class="modal" id="token-modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 id="modal-title">Select Token</h3>
+            <i class="fa-solid fa-xmark" onclick="closeTokenModal()"></i>
+        </div>
+        <div class="token-list" id="token-list-container"></div>
+    </div>
+</div>
+
+<div class="success-overlay" id="success-modal">
+    <div class="check-circle">
+        <svg class="check-svg" viewBox="0 0 52 52">
+            <path d="M14 27 L22 35 L38 18" />
+        </svg>
+    </div>
+    <div class="success-title">Swap Successful!</div>
+    <div class="success-desc" id="success-message">Your transaction was completed successfully.</div>
+    <button class="btn-primary" onclick="closeSuccessModal()">Done</button>
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+    import { getFirestore, doc, getDoc, updateDoc, collection, getDocs, increment } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyAMucqvSoBlUo5jn5Pu4ClQIGRlInu55mQ", authDomain: "project-app-259f2.firebaseapp.com",
+      projectId: "project-app-259f2", storageBucket: "project-app-259f2.firebasestorage.app",
+      messagingSenderId: "389607996830", appId: "1:389607996830:web:a9e456c60e4608f1a9ea8f"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    let currentUserId = null;
+    let currentWalletId = null;
+    let walletBalances = {};
+    let coinPrices = { 'BTC': 80000, 'SOL': 145.20, 'USDT': 1.00 }; 
+    
+    let fromCoin = null;
+    let toCoin = null;
+    let inputString = "0";
+    
+    const FEE_PERCENTAGE = 0.01;
+
+    const fromAmountEl = document.getElementById('from-amount');
+    const toAmountEl = document.getElementById('to-amount');
+    const fromUsdEl = document.getElementById('from-usd');
+    const toUsdEl = document.getElementById('to-usd');
+    const fromBalanceEl = document.getElementById('from-balance');
+    const toBalanceEl = document.getElementById('to-balance');
+    const fromTokenBtn = document.getElementById('from-token-btn');
+    const toTokenBtn = document.getElementById('to-token-btn');
+    const sliderThumb = document.getElementById('slider-thumb');
+    const sliderTrack = document.getElementById('slider-track');
+    const sliderText = document.getElementById('slider-text');
+
+    window.showSuccessModal = function(message) {
+        document.getElementById('success-message').innerHTML = message;
+        document.getElementById('success-modal').classList.add('show');
+    }
+
+    window.closeSuccessModal = function() {
+        document.getElementById('success-modal').classList.remove('show');
+        // FIXED REDIRECT HERE: Goes to dashboard.html instead of index.html
+        window.location.href = 'dashboard.html'; 
+    }
+
+    const getCoinStyle = (symbol) => {
+        const styles = { 'BTC': { bg: '#f7931a', letter: '₿' }, 'SOL': { bg: '#14f195', letter: 'S' }, 'USDT': { bg: '#26a17b', letter: '₮' }, 'ETH': { bg: '#627eea', letter: 'Ξ' } };
+        return styles[symbol] || { bg: '#2b3139', letter: symbol.charAt(0) };
+    };
+
+    onAuthStateChanged(auth, async (user) => {
+        if (user) {
+            currentUserId = user.uid;
+            const userDoc = await getDoc(doc(db, "users", currentUserId));
+            if (userDoc.exists()) {
+                currentWalletId = userDoc.data().activeWalletId;
+                await loadWalletData();
+                await loadCoinPrices();
+                
+                if (walletBalances['BTC'] !== undefined) {
+                    selectToken('from', 'BTC');
+                }
+            }
+        } else {
+            window.location.href = 'login.html';
+        }
+    });
+
+    async function loadWalletData() {
+        const walletDoc = await getDoc(doc(db, "wallets", currentWalletId));
+        if (walletDoc.exists()) {
+            walletBalances = walletDoc.data().balances || {};
+            updateUI();
+        }
+    }
+
+    async function loadCoinPrices() {
+        const coinsSnapshot = await getDocs(collection(db, "coins"));
+        coinsSnapshot.forEach(d => { coinPrices[d.id] = d.data().price; });
+        updateUI();
+    }
+
+    window.pressNum = function(num) {
+        if (inputString === "0" && num !== ".") {
+            inputString = num;
+        } else {
+            if (num === "." && inputString.includes(".")) return;
+            if (inputString.includes(".") && inputString.split(".")[1].length >= 6) return;
+            inputString += num;
+        }
+        updateUI();
+    }
+
+    window.backspace = function() {
+        if (inputString.length > 1) {
+            inputString = inputString.slice(0, -1);
+        } else {
+            inputString = "0";
+        }
+        updateUI();
+    }
+
+    function updateUI() {
+        const amount = parseFloat(inputString) || 0;
+        
+        fromAmountEl.innerText = inputString;
+        if (fromCoin) {
+            const style = getCoinStyle(fromCoin);
+            fromTokenBtn.classList.remove('empty');
+            fromTokenBtn.innerHTML = `<div class="token-icon" style="background: ${style.bg};">${style.letter}</div> ${fromCoin} <i class="fa-solid fa-chevron-right" style="font-size: 10px;"></i>`;
+            fromUsdEl.innerText = `$${(amount * (coinPrices[fromCoin] || 0)).toFixed(2)}`;
+            fromBalanceEl.innerText = `${walletBalances[fromCoin] || 0} ${fromCoin}`;
+        }
+
+        let receiveAmount = 0;
+        if (fromCoin && toCoin && amount > 0) {
+            const usdValue = amount * (coinPrices[fromCoin] || 0);
+            const fee = usdValue * FEE_PERCENTAGE;
+            const finalUsdValue = usdValue - fee;
+            receiveAmount = finalUsdValue / (coinPrices[toCoin] || 1);
+        }
+
+        toAmountEl.innerText = receiveAmount > 0 ? receiveAmount.toFixed(6) : "0";
+        if (toCoin) {
+            const style = getCoinStyle(toCoin);
+            toTokenBtn.classList.remove('empty');
+            toTokenBtn.innerHTML = `<div class="token-icon" style="background: ${style.bg};">${style.letter}</div> ${toCoin} <i class="fa-solid fa-chevron-right" style="font-size: 10px;"></i>`;
+            toUsdEl.innerText = `$${(receiveAmount * (coinPrices[toCoin] || 0)).toFixed(2)}`;
+            toBalanceEl.innerText = `${walletBalances[toCoin] || 0} ${toCoin}`;
+        }
+
+        const hasEnoughBalance = amount > 0 && amount <= (walletBalances[fromCoin] || 0);
+        if (fromCoin && toCoin && fromCoin !== toCoin && hasEnoughBalance) {
+            sliderThumb.classList.remove('disabled');
+        } else {
+            sliderThumb.classList.add('disabled');
+            resetSlider();
+        }
+    }
+
+    let modalType = 'from';
+
+    window.openTokenModal = function(type) {
+        modalType = type;
+        document.getElementById('modal-title').innerText = type === 'from' ? 'Select Coin to Sell' : 'Select Coin to Buy';
+        const list = document.getElementById('token-list-container');
+        list.innerHTML = '';
+
+        const allCoins = ['BTC', 'SOL', 'USDT', 'ETH', 'BNB', 'XRP', 'ADA', 'DOGE'];
+        
+        allCoins.forEach(coin => {
+            const balance = walletBalances[coin] || 0;
+            if (type === 'from' && balance <= 0) return; 
+            
+            const style = getCoinStyle(coin);
+            list.innerHTML += `
+                <div class="token-item" onclick="selectToken('${type}', '${coin}')">
+                    <div class="token-item-left">
+                        <div class="token-icon" style="background: ${style.bg}; width: 32px; height: 32px; font-size: 16px;">${style.letter}</div>
+                        <div>
+                            <h4>${coin}</h4>
+                            <p>$${(coinPrices[coin] || 0).toFixed(2)}</p>
+                        </div>
+                    </div>
+                    <div class="token-item-right">${balance} ${coin}</div>
+                </div>
+            `;
+        });
+
+        if (list.innerHTML === '') {
+            list.innerHTML = '<p style="text-align:center; color:var(--muted); margin-top:20px;">No coins available.</p>';
+        }
+        
+        document.getElementById('token-modal').style.display = 'flex';
+    }
+
+    window.closeTokenModal = function() { document.getElementById('token-modal').style.display = 'none'; }
+
+    window.selectToken = function(type, coin) {
+        if (type === 'from') fromCoin = coin;
+        else toCoin = coin;
+        
+        if (fromCoin === toCoin) {
+            if (type === 'from') toCoin = null;
+            else fromCoin = null;
+        }
+        
+        inputString = "0";
+        closeTokenModal();
+        resetSlider();
+        updateUI();
+    }
+
+    let isDragging = false;
+    let startX = 0;
+    let maxDrag = 0;
+
+    sliderThumb.addEventListener('mousedown', startDrag);
+    sliderThumb.addEventListener('touchstart', startDrag, {passive: false});
+    window.addEventListener('mousemove', onDrag);
+    window.addEventListener('touchmove', onDrag, {passive: false});
+    window.addEventListener('mouseup', endDrag);
+    window.addEventListener('touchend', endDrag);
+
+    function startDrag(e) {
+        if (sliderThumb.classList.contains('disabled')) return;
+        isDragging = true;
+        startX = e.type.includes('mouse') ? e.clientX : e.touches[0].clientX;
+        maxDrag = sliderTrack.clientWidth - sliderThumb.clientWidth - 8;
+        sliderThumb.style.transition = 'none';
+    }
+
+    function onDrag(e) {
+        if (!isDragging) return;
+        if (e.cancelable) e.preventDefault();
+        
+        const currentX = e.type.includes('mouse') ? e.clientX : e.touches[0].clientX;
+        let diff = currentX - startX;
+        
+        if (diff < 0) diff = 0;
+        if (diff > maxDrag) diff = maxDrag;
+        
+        sliderThumb.style.transform = `translateX(${diff}px)`;
+        sliderText.style.opacity = 1 - (diff / maxDrag);
+        
+        if (diff >= maxDrag * 0.9) {
+            isDragging = false;
+            sliderThumb.style.transition = 'transform 0.2s';
+            sliderThumb.style.transform = `translateX(${maxDrag}px)`;
+            executeSwap();
+        }
+    }
+
+    function endDrag() {
+        if (!isDragging) return;
+        isDragging = false;
+        sliderThumb.style.transition = 'transform 0.3s cubic-bezier(0.68, -0.55, 0.27, 1.55)';
+        resetSlider();
+    }
+
+    function resetSlider() {
+        sliderThumb.style.transform = `translateX(0px)`;
+        sliderText.style.opacity = 1;
+    }
+
+    async function executeSwap() {
+        const amount = parseFloat(inputString);
+        const receiveAmount = parseFloat(toAmountEl.innerText);
+        
+        if (!fromCoin || !toCoin || amount <= 0 || receiveAmount <= 0) return;
+
+        sliderText.innerText = "Processing...";
+        sliderThumb.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+
+        try {
+            const walletRef = doc(db, "wallets", currentWalletId);
+            
+            await updateDoc(walletRef, {
+                [`balances.${fromCoin}`]: increment(-amount),
+                [`balances.${toCoin}`]: increment(receiveAmount)
+            });
+
+            showSuccessModal(`You swapped <strong>${amount} ${fromCoin}</strong><br>for <strong>${receiveAmount.toFixed(6)} ${toCoin}</strong>.`);
+            
+        } catch (e) {
+            alert("Swap Failed: " + e.message);
+            sliderThumb.innerHTML = '<i class="fa-solid fa-chevron-right"></i>';
+            sliderText.innerText = "Slide to Swap";
+            resetSlider();
+        }
+    }
+</script>
+</body>
+</html>

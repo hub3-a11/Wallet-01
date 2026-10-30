@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Simulated Wallet</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root { --bg-main: #0b0e11; --bg-card: #181a20; --text-main: #ffffff; --text-muted: #848e9c; --green: #0ecb81; --purple: #5b41ff; --red: #f6465d; }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; -webkit-tap-highlight-color: transparent; }
+        body { background-color: var(--bg-main); color: var(--text-main); display: flex; justify-content: center; min-height: 100vh; overflow-x: hidden; }
+        
+        /* Toast Notification */
+        .toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%) translateY(-20px); background: var(--red); color: white; padding: 12px 24px; border-radius: 25px; font-weight: bold; font-size: 14px; z-index: 9999; opacity: 0; transition: 0.3s; box-shadow: 0 4px 12px rgba(0,0,0,0.5); pointer-events: none;}
+        .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+        .toast.success { background: var(--green); color: black; }
+
+        .loader-overlay { position: fixed; inset: 0; background: var(--bg-main); z-index: 9999; display: flex; justify-content: center; align-items: center; transition: opacity 0.5s ease; }
+        .loader { width: 40px; height: 40px; border: 4px solid #2b3139; border-top: 4px solid var(--purple); border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        .fade-in { animation: fadeIn 0.6s ease-out forwards; opacity: 0; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+        .stagger-1 { animation: slideUpFade 0.5s ease both; animation-delay: 0.1s; }
+        .stagger-2 { animation: slideUpFade 0.5s ease both; animation-delay: 0.2s; }
+        .stagger-3 { animation: slideUpFade 0.5s ease both; animation-delay: 0.3s; }
+        .stagger-4 { animation: slideUpFade 0.5s ease both; animation-delay: 0.4s; }
+        .stagger-5 { animation: slideUpFade 0.5s ease both; animation-delay: 0.5s; }
+        @keyframes slideUpFade { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+        .mobile-container { width: 100%; max-width: 500px; padding: 20px; padding-bottom: 150px; }
+        
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .wallet-selector { background: #1e2329; padding: 8px 16px; border-radius: 20px; display: flex; align-items: center; gap: 8px; font-size: 14px; transition: 0.2s; cursor: pointer;}
+        .wallet-selector:active { transform: scale(0.95); }
+        .wallet-icon { background: #0ecb81; color: black; border-radius: 50%; width: 20px; height: 20px; display: flex; justify-content: center; align-items: center; font-size: 12px; font-weight: bold; }
+        .header-icons { display: flex; gap: 10px; }
+        .icon-btn { background: #1e2329; border: none; color: white; width: 40px; height: 40px; border-radius: 50%; font-size: 16px; display: flex; justify-content: center; align-items: center; cursor: pointer; transition: 0.2s; }
+        .icon-btn:active { transform: scale(0.9); }
+
+        .balance-section { margin-bottom: 24px; }
+        .balance-amount { font-size: 42px; font-weight: 700; letter-spacing: -1px; }
+        .balance-change { color: var(--green); font-size: 14px; margin-top: 4px; font-weight: 500; }
+
+        .actions { display: flex; justify-content: space-between; margin-bottom: 32px; }
+        .action-item { display: flex; flex-direction: column; align-items: center; gap: 8px; cursor: pointer; flex: 1;}
+        .action-btn { width: 60px; height: 60px; border-radius: 16px; background: #1e2329; border: none; color: white; font-size: 20px; display: flex; justify-content: center; align-items: center; transition: transform 0.1s, background 0.2s; }
+        .action-btn.primary { background: var(--purple); }
+        .action-btn.green { background: var(--green); color: black;}
+        .action-btn:active { transform: scale(0.85); }
+        .action-label { font-size: 13px; font-weight: 500; text-align: center;}
+
+        .section-title { display: flex; align-items: center; gap: 8px; font-size: 18px; font-weight: 600; margin-bottom: 16px; margin-top: 30px; }
+        .section-title.first { margin-top: 0; }
+        
+        .token-card { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; transition: 0.2s; border-bottom: 1px solid rgba(255,255,255,0.02); }
+        .token-card:active { background: rgba(255,255,255,0.05); }
+        .token-info { display: flex; align-items: center; gap: 12px; }
+        
+        .token-logo { width: 40px; height: 40px; border-radius: 50%; display: flex; justify-content: center; align-items: center; overflow: hidden; background: #2b3139; position: relative; }
+        
+        .token-name h4 { font-size: 16px; font-weight: 600; }
+        .token-name p { font-size: 13px; color: var(--text-muted); }
+        
+        .token-value-wrapper { display: flex; align-items: center; gap: 10px; }
+        .token-value { text-align: right; }
+        .token-value h4 { font-size: 16px; font-weight: 600; }
+        .token-value p { font-size: 13px; color: var(--green); }
+
+        .mini-swap-btn { background: #1e2329; border: none; color: var(--text-muted); font-size: 16px; cursor: pointer; padding: 10px; border-radius: 50%; transition: 0.2s; display: flex; justify-content: center; align-items: center;}
+        .mini-swap-btn:active { color: var(--green); transform: scale(0.85); background: #2b3139;}
+
+        .perps-scroll { display: flex; gap: 15px; overflow-x: auto; padding-bottom: 10px; scrollbar-width: none; margin-bottom: 10px;}
+        .perps-scroll::-webkit-scrollbar { display: none; }
+        .perps-card { background: var(--bg-card); border-radius: 16px; padding: 15px; min-width: 150px; border: 1px solid rgba(255,255,255,0.02); cursor: pointer; position: relative;}
+        .perps-icon-wrapper { position: relative; width: 40px; height: 40px; margin-bottom: 15px; }
+        .perps-main-icon { width: 100%; height: 100%; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 20px; font-weight: bold; color: white; }
+        .perps-badge-icon { position: absolute; bottom: -5px; right: -5px; width: 20px; height: 20px; background: #000; border-radius: 50%; display: flex; justify-content: center; align-items: center; border: 2px solid var(--bg-card); }
+        .perps-badge-icon i { color: var(--green); font-size: 10px; }
+        .perps-name { font-size: 16px; font-weight: bold; display: flex; align-items: center; gap: 8px; }
+        .perps-lev { background: #2b3139; font-size: 10px; padding: 2px 6px; border-radius: 4px; color: var(--text-muted); }
+        .perps-vol { font-size: 13px; color: var(--text-muted); margin-top: 5px; }
+
+        .watchlist-item { display: flex; justify-content: space-between; align-items: center; padding: 15px 0; border-bottom: 1px solid rgba(255,255,255,0.02); cursor: pointer;}
+        .watchlist-info { display: flex; align-items: center; gap: 12px; }
+        .watchlist-icon { width: 40px; height: 40px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 20px; }
+        .watchlist-name h4 { font-size: 16px; font-weight: 600; }
+        .watchlist-name p { font-size: 13px; color: var(--text-muted); }
+        .watchlist-price { text-align: right; }
+        .watchlist-price h4 { font-size: 16px; font-weight: 600; }
+        .watchlist-price p { font-size: 13px; }
+
+        /* FLOATING BOTTOM NAV */
+        .bottom-nav { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); width: calc(100% - 40px); max-width: 450px; background: rgba(30, 35, 41, 0.95); backdrop-filter: blur(15px); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 40px; box-shadow: 0 10px 30px rgba(0,0,0,0.8); display: flex; justify-content: space-around; align-items: center; padding: 10px 0; z-index: 999;}
+        .nav-bg { position: absolute; top: 8px; left: 0; width: 55px; height: 45px; background: #2b3139; border-radius: 25px; transition: transform 0.4s cubic-bezier(0.68, -0.55, 0.27, 1.55); z-index: 0; }
+        .nav-item { color: var(--text-muted); font-size: 22px; cursor: pointer; text-decoration: none; display: flex; justify-content: center; align-items: center; width: 64px; height: 45px; z-index: 1; transition: color 0.3s;}
+        .nav-item.active { color: white; }
+        .nav-item:active { transform: scale(0.9); }
+
+        /* Modals */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 1000; justify-content: center; align-items: flex-end; }
+        .modal-content { background: #181a20; padding: 20px; border-radius: 20px 20px 0 0; width: 100%; max-width: 500px; animation: slideUpModal 0.3s cubic-bezier(0.16,1,0.3,1); max-height: 90vh; overflow-y: auto;}
+        @keyframes slideUpModal { from { transform: translateY(100%); } to { transform: translateY(0); } }
+        
+        .modal-center { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 1001; justify-content: center; align-items: center; padding: 20px;}
+        .modal-center-content { background: #181a20; padding: 30px 20px; border-radius: 20px; width: 100%; max-width: 350px; text-align: center; animation: popIn 0.3s cubic-bezier(0.16,1,0.3,1); border: 1px solid #2b3139;}
+        @keyframes popIn { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+        .modal-header { display: flex; justify-content: space-between; margin-bottom: 20px; }
+        .modal-header h3 { font-size: 18px; }
+        .modal-header i { cursor: pointer; font-size: 20px; color: var(--text-muted); padding: 5px;}
+        
+        .btn-primary { width: 100%; padding: 15px; background: var(--purple); color: white; border: none; border-radius: 8px; font-weight: bold; font-size: 16px; cursor: pointer; margin-top: 10px; transition: 0.2s;}
+        .btn-primary:active { transform: scale(0.98); }
+        .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .deposit-address-box { background: #0b0e11; padding: 15px; border-radius: 12px; border: 1px solid #2b3139; display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .address-text { font-family: monospace; font-size: 14px; word-break: break-all; text-align: left; color: var(--text-main); padding-right: 10px; }
+        .copy-btn { background: var(--purple); border: none; color: white; padding: 10px 15px; border-radius: 8px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 5px; flex-shrink: 0; transition: 0.2s;}
+        .copy-btn:active { transform: scale(0.95); }
+
+        .withdraw-step { display: none; }
+        .withdraw-step.active { display: block; animation: slideInRight 0.3s cubic-bezier(0.16,1,0.3,1) forwards; }
+        @keyframes slideInRight { from { opacity: 0; transform: translateX(30px); } to { opacity: 1; transform: translateX(0); } }
+        
+        .method-card { display: flex; align-items: center; justify-content: space-between; background: #1e2329; padding: 15px; border-radius: 12px; margin-bottom: 10px; cursor: pointer; transition: 0.2s; border: 1px solid transparent;}
+        .method-card:active { transform: scale(0.98); background: #2b3139; }
+        .method-info { display: flex; align-items: center; gap: 15px; }
+        .method-icon { width: 40px; height: 40px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 20px; color: white;}
+        .method-name h4 { font-size: 16px; font-weight: 600; }
+        .method-name p { font-size: 12px; color: var(--text-muted); }
+        
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: flex; justify-content: space-between; font-size: 12px; color: var(--text-muted); margin-bottom: 5px; }
+        .error-text { color: var(--red); display: none; }
+        .form-group input, .form-group select { width: 100%; padding: 12px; background: #0b0e11; border: 1px solid #2b3139; color: white; border-radius: 8px; font-size: 16px; outline: none; }
+        .form-group input:focus, .form-group select:focus { border-color: var(--purple); }
+        .form-group input.invalid { border-color: var(--red); }
+        
+        .back-btn-text { background: none; border: none; color: var(--text-muted); font-size: 14px; cursor: pointer; margin-top: 15px; display: block; text-align: center; width: 100%; }
+
+        .shield-icon-container { width: 60px; height: 60px; border-radius: 50%; background: rgba(91, 65, 255, 0.15); display: inline-flex; justify-content: center; align-items: center; margin-bottom: 15px; animation: floatShield 2s ease-in-out infinite; }
+        @keyframes floatShield { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+        
+        .code-input { width: 100%; padding: 15px; background: #0b0e11; border: 1px solid #2b3139; color: var(--green); border-radius: 8px; font-size: 24px; font-weight: bold; text-align: center; letter-spacing: 5px; text-transform: uppercase; outline: none; margin-bottom: 15px;}
+        .code-input:focus { border-color: var(--green); }
+
+        .success-overlay { position: fixed; inset: 0; background: rgba(11, 14, 17, 0.95); z-index: 10000; display: none; justify-content: center; align-items: center; flex-direction: column; padding: 20px; }
+        .success-overlay.show { display: flex; animation: fadeIn 0.3s ease-out; }
+        
+        .check-circle { width: 100px; height: 100px; border-radius: 50%; background: rgba(14, 203, 129, 0.1); border: 2px solid var(--green); display: flex; justify-content: center; align-items: center; position: relative; margin-bottom: 25px; animation: popIn 0.5s cubic-bezier(0.16,1,0.3,1); }
+        .check-circle::before { content: ''; position: absolute; inset: -10px; border-radius: 50%; border: 2px solid rgba(14, 203, 129, 0.3); animation: ripple 1.5s ease-out infinite; }
+        
+        @keyframes ripple { 0% { transform: scale(1); opacity: 0.8; } 100% { transform: scale(1.5); opacity: 0; } }
+        
+        .check-svg { width: 50px; height: 50px; }
+        .check-svg path { stroke: var(--green); stroke-width: 4; fill: none; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 60; stroke-dashoffset: 60; animation: drawCheck 0.6s 0.3s ease forwards; }
+        
+        @keyframes drawCheck { to { stroke-dashoffset: 0; } }
+        
+        .success-title { font-size: 24px; font-weight: bold; margin-bottom: 10px; color: white; }
+        .success-desc { font-size: 15px; color: var(--text-muted); margin-bottom: 30px; text-align: center; line-height: 1.5; }
+        .success-desc strong { color: var(--green); }
+    </style>
+</head>
+<body>
+
+<div id="toast" class="toast">Notification</div>
+
+<div class="loader-overlay" id="loader"><div class="loader"></div></div>
+
+<div class="mobile-container fade-in">
+    <div class="header stagger-1">
+        <div class="wallet-selector">
+            <div class="wallet-icon"><i class="fa-solid fa-gem"></i></div>
+            <span id="active-wallet-id">Loading...</span>
+        </div>
+        <div class="header-icons">
+            <button class="icon-btn" onclick="logout()"><i class="fa-solid fa-right-from-bracket"></i></button>
+            <button class="icon-btn"><i class="fa-solid fa-qrcode"></i></button>
+        </div>
+    </div>
+
+    <div class="balance-section stagger-1">
+        <div class="balance-amount" id="total-balance">$0.00</div>
+        <div class="balance-change"><i class="fa-solid fa-caret-up"></i> Live Balance</div>
+    </div>
+
+    <div class="actions stagger-2">
+        <div class="action-item" onclick="window.location.href='swap.html'">
+            <button class="action-btn green"><i class="fa-solid fa-rotate"></i></button>
+            <span class="action-label">Swap</span>
+        </div>
+        <div class="action-item" onclick="openModal('deposit-modal')">
+            <button class="action-btn"><i class="fa-solid fa-arrow-down"></i></button>
+            <span class="action-label">Deposit</span>
+        </div>
+        <div class="action-item" onclick="openWithdrawModal()">
+            <button class="action-btn"><i class="fa-solid fa-arrow-up"></i></button>
+            <span class="action-label">Withdraw</span>
+        </div>
+        <div class="action-item" onclick="window.location.href='trade.html'">
+            <button class="action-btn primary"><i class="fa-solid fa-chart-line"></i></button>
+            <span class="action-label">Trade</span>
+        </div>
+    </div>
+
+    <div class="section-title stagger-3 first">Tokens <i class="fa-solid fa-chevron-right" style="font-size: 12px;"></i></div>
+    <div id="tokens-container"></div>
+
+    <div class="section-title stagger-4">Perps <i class="fa-solid fa-chevron-right" style="font-size: 12px;"></i></div>
+    <div class="perps-scroll stagger-4">
+        <div class="perps-card">
+            <div class="perps-icon-wrapper">
+                <div class="perps-main-icon" style="background: #f7931a;"><i class="fa-brands fa-bitcoin"></i></div>
+                <div class="perps-badge-icon"><i class="fa-solid fa-arrow-trend-up"></i></div>
+            </div>
+            <div class="perps-name">BTC <span class="perps-lev">40x</span></div>
+            <div class="perps-vol">$2.71B Vol</div>
+        </div>
+        <div class="perps-card">
+            <div class="perps-icon-wrapper">
+                <div class="perps-main-icon" style="background: #14f195; color: #0b0e11;"><i class="fa-solid fa-infinity"></i></div>
+                <div class="perps-badge-icon"><i class="fa-solid fa-arrow-trend-up"></i></div>
+            </div>
+            <div class="perps-name">HYPE <span class="perps-lev">10x</span></div>
+            <div class="perps-vol">$1.79B Vol</div>
+        </div>
+        <div class="perps-card">
+            <div class="perps-icon-wrapper">
+                <div class="perps-main-icon" style="background: #627eea;"><i class="fa-brands fa-ethereum"></i></div>
+                <div class="perps-badge-icon"><i class="fa-solid fa-arrow-trend-up"></i></div>
+            </div>
+            <div class="perps-name">ETH <span class="perps-lev">25x</span></div>
+            <div class="perps-vol">$1.14B Vol</div>
+        </div>
+    </div>
+
+    <div class="section-title stagger-5">Watchlist <i class="fa-solid fa-chevron-right" style="font-size: 12px;"></i></div>
+    <div class="stagger-5">
+        <div class="watchlist-item">
+            <div class="watchlist-info">
+                <div class="watchlist-icon" style="background: #627eea; color: white;"><i class="fa-brands fa-ethereum"></i></div>
+                <div class="watchlist-name"><h4>ETH</h4><p>$284.72B MCap</p></div>
+            </div>
+            <div class="watchlist-price"><h4>$2,330.50</h4><p style="color: var(--red);">-1.09%</p></div>
+        </div>
+        <div class="watchlist-item">
+            <div class="watchlist-info">
+                <div class="watchlist-icon" style="background: #f7931a; color: white;"><i class="fa-brands fa-bitcoin"></i></div>
+                <div class="watchlist-name"><h4>BTC</h4><p>$1.62T MCap</p></div>
+            </div>
+            <div class="watchlist-price"><h4>$80,767.89</h4><p style="color: var(--red);">-0.29%</p></div>
+        </div>
+        <div class="watchlist-item">
+            <div class="watchlist-info">
+                <div class="watchlist-icon" style="background: #f3ba2f; color: #0b0e11;"><i class="fa-solid fa-cube"></i></div>
+                <div class="watchlist-name"><h4>BNB</h4><p>$97.74B MCap</p></div>
+            </div>
+            <div class="watchlist-price"><h4>$743.19</h4><p style="color: var(--red);">-0.96%</p></div>
+        </div>
+        <div class="watchlist-item">
+            <div class="watchlist-info">
+                <div class="watchlist-icon" style="background: #14f195; color: #0b0e11;"><i class="fa-solid fa-layer-group"></i></div>
+                <div class="watchlist-name"><h4>SOL</h4><p>$59.28B MCap</p></div>
+            </div>
+            <div class="watchlist-price"><h4>$100.48</h4><p style="color: var(--red);">-1.52%</p></div>
+        </div>
+    </div>
+</div>
+
+<div class="bottom-nav">
+    <div class="nav-bg" id="nav-bg"></div>
+    <a href="#" class="nav-item active" onclick="navigate(event, 'dashboard.html')"><i class="fa-solid fa-house"></i></a>
+    <a href="#" class="nav-item" onclick="navigate(event, 'markets.html')"><i class="fa-solid fa-arrow-trend-up"></i></a>
+    <a href="#" class="nav-item" onclick="navigate(event, 'trade.html')"><i class="fa-solid fa-infinity"></i></a>
+    <a href="#" class="nav-item" onclick="navigate(event, 'swap.html')"><i class="fa-solid fa-rotate"></i></a>
+</div>
+
+<div class="modal" id="deposit-modal">
+    <div class="modal-content" style="text-align: center;">
+        <div class="modal-header"><h3>Deposit Bitcoin</h3><i class="fa-solid fa-xmark" onclick="closeModal('deposit-modal')"></i></div>
+        
+        <p style="font-size: 15px; color: var(--text-muted); margin-bottom: 20px;">Copy your Bitcoin address to deposit coins.</p>
+        
+        <div style="background: white; padding: 15px; border-radius: 12px; display: inline-block; margin-bottom: 25px;">
+            <i class="fa-solid fa-qrcode" style="font-size: 120px; color: #0b0e11;"></i>
+        </div>
+
+        <div class="deposit-address-box">
+            <span class="address-text" id="btc-address">35q7HRHk73ZrvbYrrez8RpM7CcSUb8HPux</span>
+            <button class="copy-btn" onclick="copyAddress()">
+                <i class="fa-regular fa-copy"></i> Copy
+            </button>
+        </div>
+        
+        <p style="font-size: 13px; color: var(--green); text-align: left; padding: 0 5px;">
+            <i class="fa-solid fa-circle-info"></i> Only send Bitcoin (BTC) to this address. Your balance will update after network confirmation.
+        </p>
+    </div>
+</div>
+
+<div class="modal" id="withdraw-modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 id="withdraw-title">Withdraw Funds</h3>
+            <i class="fa-solid fa-xmark" onclick="closeModal('withdraw-modal')"></i>
+        </div>
+
+        <div class="withdraw-step active" id="withdraw-step-1">
+            <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 15px;">Select your preferred withdrawal method.</p>
+            
+            <div class="method-card" onclick="selectWithdrawMethod('Bitcoin')">
+                <div class="method-info">
+                    <div class="method-icon" style="background: #f7931a;"><i class="fa-brands fa-bitcoin"></i></div>
+                    <div class="method-name"><h4>Bitcoin (BTC)</h4><p>Withdraw to crypto wallet</p></div>
+                </div>
+                <i class="fa-solid fa-chevron-right" style="color: var(--text-muted);"></i>
+            </div>
+            
+            <div class="method-card" onclick="selectWithdrawMethod('PayPal')">
+                <div class="method-info">
+                    <div class="method-icon" style="background: #003087;"><i class="fa-brands fa-paypal"></i></div>
+                    <div class="method-name"><h4>PayPal</h4><p>Fast transfer to PayPal account</p></div>
+                </div>
+                <i class="fa-solid fa-chevron-right" style="color: var(--text-muted);"></i>
+            </div>
+            
+            <div class="method-card" onclick="selectWithdrawMethod('Bank Transfer')">
+                <div class="method-info">
+                    <div class="method-icon" style="background: #2b3139;"><i class="fa-solid fa-building-columns"></i></div>
+                    <div class="method-name"><h4>Bank Transfer</h4><p>Direct deposit to bank account</p></div>
+                </div>
+                <i class="fa-solid fa-chevron-right" style="color: var(--text-muted);"></i>
+            </div>
+        </div>
+
+        <div class="withdraw-step" id="withdraw-step-2">
+            <div class="form-group">
+                <label>Coin to Withdraw</label>
+                <select id="withdraw-coin" onchange="updateWithdrawBalanceText()">
+                    <option value="BTC">BTC</option><option value="SOL">SOL</option><option value="USDT">USDT</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label>
+                    <span>Amount</span>
+                    <span id="withdraw-available-text" style="color: var(--green);">Available: 0</span>
+                </label>
+                <input type="number" id="withdraw-amount" placeholder="0.00" step="any" oninput="validateWithdrawAmount()">
+                <span class="error-text" id="withdraw-error-text">Insufficient balance!</span>
+            </div>
+
+            <div id="method-specific-inputs"></div>
+
+            <button class="btn-primary" onclick="proceedToAdminCode()">Continue</button>
+            <button class="back-btn-text" onclick="goBackToMethod()"><i class="fa-solid fa-arrow-left"></i> Back to methods</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal-center" id="admin-code-modal">
+    <div class="modal-center-content">
+        <div class="shield-icon-container">
+            <i class="fa-solid fa-shield-halved" style="font-size: 28px; color: var(--purple);"></i>
+        </div>
+        <h3 style="margin-bottom: 8px;">Security Check</h3>
+        <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 25px; line-height: 1.4;">Enter your Admin Withdrawal Code to complete the transaction.</p>
+        
+        <input type="text" id="admin-code-input" class="code-input" placeholder="XXXXXX" maxlength="15">
+        
+        <button class="btn-primary" id="btn-confirm-withdraw" onclick="executeWithdraw()">Confirm Withdrawal</button>
+        <button class="back-btn-text" onclick="backToWithdrawalDetails()">Cancel</button>
+    </div>
+</div>
+
+<div class="success-overlay" id="success-modal">
+    <div class="check-circle">
+        <svg class="check-svg" viewBox="0 0 52 52">
+            <path d="M14 27 L22 35 L38 18" />
+        </svg>
+    </div>
+    <div class="success-title">Success!</div>
+    <div class="success-desc" id="success-message">Your transaction was completed successfully.</div>
+    <button class="btn-primary" style="max-width: 200px;" onclick="closeSuccessModal()">Done</button>
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+    import { getFirestore, doc, getDoc, updateDoc, addDoc, collection, getDocs, increment } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyAMucqvSoBlUo5jn5Pu4ClQIGRlInu55mQ", authDomain: "project-app-259f2.firebaseapp.com",
+      projectId: "project-app-259f2", storageBucket: "project-app-259f2.firebasestorage.app",
+      messagingSenderId: "389607996830", appId: "1:389607996830:web:a9e456c60e4608f1a9ea8f"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    window.showToast = function(message, isSuccess = false) {
+        const toast = document.getElementById('toast');
+        toast.innerText = message;
+        toast.className = isSuccess ? 'toast success show' : 'toast show';
+        setTimeout(() => { toast.classList.remove('show'); }, 3000);
+    }
+
+    window.showSuccessModal = function(message) {
+        document.getElementById('success-message').innerHTML = message;
+        document.getElementById('success-modal').classList.add('show');
+    }
+
+    window.closeSuccessModal = function() {
+        document.getElementById('success-modal').classList.remove('show');
+        loadWalletData();
+    }
+
+    const getCoinIcon = (symbol) => {
+        const icons = {
+            'BTC': 'https://cdn.jsdelivr.net/gh/spothq/cryptocurrency-icons@master/128/color/btc.png',
+            'ETH': 'https://cdn.jsdelivr.net/gh/spothq/cryptocurrency-icons@master/128/color/eth.png',
+            'USDT': 'https://cdn.jsdelivr.net/gh/spothq/cryptocurrency-icons@master/128/color/usdt.png',
+            'SOL': 'https://cryptologos.cc/logos/solana-sol-logo.png?v=032',
+            'XRP': 'https://cdn.jsdelivr.net/gh/spothq/cryptocurrency-icons@master/128/color/xrp.png',
+            'BNB': 'https://cdn.jsdelivr.net/gh/spothq/cryptocurrency-icons@master/128/color/bnb.png',
+            'ADA': 'https://cdn.jsdelivr.net/gh/spothq/cryptocurrency-icons@master/128/color/ada.png',
+            'DOGE': 'https://cdn.jsdelivr.net/gh/spothq/cryptocurrency-icons@master/128/color/doge.png'
+        };
+        return icons[symbol] || null;
+    };
+
+    const getCoinStyle = (symbol) => {
+        const styles = { 'BTC': { bg: '#f7931a', letter: 'B' }, 'SOL': { bg: '#181a20', letter: 'S', text: '#14f195' }, 'USDT': { bg: '#26a17b', letter: 'T' }, 'XRP': { bg: '#23292f', letter: 'X' } };
+        return styles[symbol] || { bg: '#2b3139', letter: symbol.charAt(0), text: 'white' };
+    };
+
+    function animateValue(obj, start, end, duration) {
+        let startTimestamp = null;
+        const step = (timestamp) => {
+            if (!startTimestamp) startTimestamp = timestamp;
+            const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+            const currentVal = progress * (end - start) + start;
+            obj.innerHTML = '$' + currentVal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            if (progress < 1) window.requestAnimationFrame(step);
+        };
+        window.requestAnimationFrame(step);
+    }
+
+    function setPillPosition(activeItem) {
+        const navBg = document.getElementById('nav-bg');
+        const translateX = activeItem.offsetLeft + (activeItem.offsetWidth / 2) - (navBg.offsetWidth / 2);
+        navBg.style.transform = `translateX(${translateX}px)`;
+    }
+
+    window.addEventListener('load', () => {
+        document.getElementById('loader').style.opacity = '0';
+        setTimeout(() => document.getElementById('loader').style.display = 'none', 500);
+        setTimeout(() => {
+            const activeItem = document.querySelector('.nav-item.active');
+            if (activeItem) setPillPosition(activeItem);
+        }, 100);
+    });
+
+    window.navigate = function(event, url) {
+        event.preventDefault();
+        const activeItem = event.currentTarget;
+        setPillPosition(activeItem);
+        document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+        activeItem.classList.add('active');
+        setTimeout(() => window.location.href = url, 300);
+    }
+
+    let currentUserId = null;
+    let currentWalletId = null;
+    let currentBalances = {};
+    let selectedWithdrawMethod = '';
+    let pendingWithdrawalData = null;
+
+    window.openModal = (id) => document.getElementById(id).style.display = 'flex';
+    window.closeModal = (id) => document.getElementById(id).style.display = 'none';
+    window.logout = () => signOut(auth).then(() => window.location.href = 'login.html');
+
+    window.copyAddress = function() {
+        const address = document.getElementById('btc-address').innerText;
+        navigator.clipboard.writeText(address).then(() => { showToast("Bitcoin address copied!", true); })
+        .catch(err => { showToast("Failed to copy: " + err); });
+    }
+
+    onAuthStateChanged(auth, async (user) => {
+        if (user) {
+            currentUserId = user.uid;
+            const userDoc = await getDoc(doc(db, "users", currentUserId));
+            
+            if (userDoc.exists()) {
+                // --- CHECK IF USER IS FROZEN ---
+                if (userDoc.data().status === 'frozen') {
+                    await signOut(auth);
+                    alert("Your account has been frozen by the administrator.");
+                    window.location.href = 'login.html';
+                    return;
+                }
+
+                currentWalletId = userDoc.data().activeWalletId;
+                document.getElementById('active-wallet-id').innerText = currentWalletId;
+                loadWalletData();
+            }
+        } else {
+            window.location.href = 'login.html';
+        }
+    });
+
+    async function loadWalletData() {
+        const walletRef = doc(db, "wallets", currentWalletId);
+        const walletSnap = await getDoc(walletRef);
+        if (!walletSnap.exists()) return;
+        
+        currentBalances = walletSnap.data().balances || {};
+        const coinsSnapshot = await getDocs(collection(db, "coins"));
+        const dbPrices = {};
+        coinsSnapshot.forEach(d => dbPrices[d.id] = d.data().price);
+
+        const fallbackPrices = { 'BTC': 80000, 'SOL': 145.20, 'USDT': 1.00, 'XRP': 0.52, 'ETH': 2300, 'BNB': 580.10, 'ADA': 0.45, 'DOGE': 0.12, 'AVAX': 35.10, 'LINK': 14.50 };
+
+        let totalUSD = 0;
+        const container = document.getElementById('tokens-container');
+        container.innerHTML = '';
+
+        let index = 0;
+        for (const [coin, amount] of Object.entries(currentBalances)) {
+            const price = dbPrices[coin] || fallbackPrices[coin] || 0;
+            const value = amount * price;
+            totalUSD += value;
+            
+            const iconUrl = getCoinIcon(coin);
+            const style = getCoinStyle(coin);
+            
+            let logoHtml = `<div class="token-logo" style="background: ${style.bg};">
+                                <span style="position: absolute; font-weight: bold; color: ${style.text || 'white'}; z-index: 1;">${style.letter}</span>`;
+            if (iconUrl) {
+                logoHtml += `<img src="${iconUrl}" style="position: absolute; width: 100%; height: 100%; object-fit: cover; z-index: 2;" onerror="this.style.display='none'">`;
+            }
+            logoHtml += `</div>`;
+
+            const delay = 0.4 + (index * 0.1);
+            
+            container.innerHTML += `
+                <div class="token-card" style="animation: slideUpFade 0.5s ease both; animation-delay: ${delay}s;">
+                    <div class="token-info">
+                        ${logoHtml}
+                        <div class="token-name"><h4>${coin}</h4><p>${amount} ${coin}</p></div>
+                    </div>
+                    <div class="token-value-wrapper">
+                        <div class="token-value">
+                            <h4>$${value.toFixed(2)}</h4>
+                            <p>Price: $${price}</p>
+                        </div>
+                        <button class="mini-swap-btn" onclick="window.location.href='swap.html'">
+                            <i class="fa-solid fa-rotate"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+            index++;
+        }
+        
+        const balanceEl = document.getElementById('total-balance');
+        animateValue(balanceEl, 0, totalUSD, 1000);
+    }
+
+    window.openWithdrawModal = function() {
+        document.getElementById('withdraw-step-1').classList.add('active');
+        document.getElementById('withdraw-step-2').classList.remove('active');
+        document.getElementById('withdraw-title').innerText = 'Withdraw Funds';
+        document.getElementById('withdraw-modal').style.display = 'flex';
+    }
+
+    window.selectWithdrawMethod = function(method) {
+        selectedWithdrawMethod = method;
+        document.getElementById('withdraw-title').innerText = `Withdraw via ${method}`;
+        
+        const inputsContainer = document.getElementById('method-specific-inputs');
+        inputsContainer.innerHTML = ''; 
+
+        if (method === 'Bitcoin') {
+            inputsContainer.innerHTML = `<div class="form-group"><label>Your Bitcoin (BTC) Address</label><input type="text" id="withdraw-address" placeholder="Enter BTC address"></div>`;
+        } else if (method === 'PayPal') {
+            inputsContainer.innerHTML = `<div class="form-group"><label>Your PayPal Email</label><input type="email" id="withdraw-address" placeholder="Enter PayPal email"></div>`;
+        } else if (method === 'Bank Transfer') {
+            inputsContainer.innerHTML = `
+                <div class="form-group"><label>Account Holder Name</label><input type="text" id="bank-name" placeholder="John Doe"></div>
+                <div class="form-group"><label>Account Number / IBAN</label><input type="text" id="withdraw-address" placeholder="Enter account number"></div>
+                <div class="form-group"><label>Bank Name</label><input type="text" id="bank-title" placeholder="e.g. Chase Bank"></div>
+            `;
+        }
+
+        document.getElementById('withdraw-step-1').classList.remove('active');
+        document.getElementById('withdraw-step-2').classList.add('active');
+        document.getElementById('withdraw-amount').value = '';
+        document.getElementById('withdraw-error-text').style.display = 'none';
+        document.getElementById('withdraw-amount').classList.remove('invalid');
+        updateWithdrawBalanceText();
+    }
+
+    window.goBackToMethod = function() {
+        document.getElementById('withdraw-step-1').classList.add('active');
+        document.getElementById('withdraw-step-2').classList.remove('active');
+        document.getElementById('withdraw-title').innerText = 'Withdraw Funds';
+    }
+
+    window.updateWithdrawBalanceText = function() {
+        const coin = document.getElementById('withdraw-coin').value;
+        const available = currentBalances[coin] || 0;
+        document.getElementById('withdraw-available-text').innerText = `Available: ${available} ${coin}`;
+    }
+
+    window.validateWithdrawAmount = function() {
+        const coin = document.getElementById('withdraw-coin').value;
+        const amount = parseFloat(document.getElementById('withdraw-amount').value);
+        const available = currentBalances[coin] || 0;
+        const errorText = document.getElementById('withdraw-error-text');
+        const input = document.getElementById('withdraw-amount');
+
+        if (amount > available) {
+            input.classList.add('invalid');
+            errorText.style.display = 'block';
+            return false;
+        } else {
+            input.classList.remove('invalid');
+            errorText.style.display = 'none';
+            return true;
+        }
+    }
+
+    window.proceedToAdminCode = function() {
+        const coin = document.getElementById('withdraw-coin').value;
+        const amount = parseFloat(document.getElementById('withdraw-amount').value);
+        const addressInput = document.getElementById('withdraw-address');
+
+        if(!addressInput || !addressInput.value.trim()) return showToast(`Please enter your ${selectedWithdrawMethod} details.`);
+        if(isNaN(amount) || amount <= 0) return showToast("Please enter a valid amount.");
+        
+        if ((currentBalances[coin] || 0) < amount) {
+            return showToast(`Insufficient ${coin} balance!`);
+        }
+
+        pendingWithdrawalData = {
+            coin: coin, amount: amount, address: addressInput.value.trim(), method: selectedWithdrawMethod
+        };
+
+        closeModal('withdraw-modal');
+        document.getElementById('admin-code-input').value = ''; 
+        document.getElementById('admin-code-modal').style.display = 'flex';
+    }
+
+    window.backToWithdrawalDetails = function() {
+        closeModal('admin-code-modal');
+        document.getElementById('withdraw-modal').style.display = 'flex';
+    }
+
+    window.executeWithdraw = async function() {
+        if(!pendingWithdrawalData) return;
+        
+        const code = document.getElementById('admin-code-input').value.trim().toUpperCase();
+        if(!code) return showToast("Please enter the Admin Code.");
+
+        const btn = document.getElementById('btn-confirm-withdraw');
+        btn.innerText = "Processing...";
+        btn.disabled = true;
+
+        try {
+            const codeRef = doc(db, "withdrawal_codes", code);
+            const codeSnap = await getDoc(codeRef);
+            
+            // 1. Check if code exists and is ACTIVE (Single-use enforcement)
+            if (!codeSnap.exists() || codeSnap.data().status !== 'active') throw new Error("Invalid or used withdrawal code.");
+            
+            // 2. Check if code is restricted to a specific coin
+            if (codeSnap.data().coin && codeSnap.data().coin !== 'ALL' && codeSnap.data().coin !== pendingWithdrawalData.coin) {
+                throw new Error(`This code is only valid for ${codeSnap.data().coin} withdrawals.`);
+            }
+
+            const myWalletRef = doc(db, "wallets", currentWalletId);
+            await updateDoc(myWalletRef, { [`balances.${pendingWithdrawalData.coin}`]: increment(-pendingWithdrawalData.amount) });
+            
+            // 3. Mark code as 'used' immediately after successful withdrawal
+            await updateDoc(codeRef, { status: "used", usedBy: currentUserId, usedAt: new Date(), method: pendingWithdrawalData.method });
+            
+            await addDoc(collection(db, "transactions"), {
+                type: "external_withdrawal", fromUid: currentUserId, fromWalletId: currentWalletId,
+                amount: pendingWithdrawalData.amount, coin: pendingWithdrawalData.coin, 
+                codeUsed: code, method: pendingWithdrawalData.method, 
+                address: pendingWithdrawalData.address, timestamp: new Date()
+            });
+
+            closeModal('admin-code-modal');
+            showSuccessModal(`You have successfully withdrawn <br><strong>${pendingWithdrawalData.amount} ${pendingWithdrawalData.coin}</strong><br> via ${pendingWithdrawalData.method}.`);
+
+            pendingWithdrawalData = null;
+        } catch (e) { 
+            showToast("Error: " + e.message); 
+        } finally {
+            btn.innerText = "Confirm Withdrawal";
+            btn.disabled = false;
+        }
+    }
+</script>
+<!-- GLOBAL TRADE RESOLVER -->
+<script type="module" src="trade-resolver.js"></script>
+</body>
+</html>

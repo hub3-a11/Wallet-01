@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <!-- Strict viewport to prevent zooming -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Sign Up - Simulated Wallet</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            background-color: #0b0e11; 
+            color: white; 
+            font-family: -apple-system, sans-serif; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            height: 100vh; 
+            overflow-x: hidden;
+        }
+        .box { 
+            background: #181a20; 
+            padding: 30px; 
+            border-radius: 12px; 
+            width: 100%; 
+            max-width: 350px; 
+            border: 1px solid #2b3139; 
+            margin: 20px;
+        }
+        h2 { text-align: center; margin-bottom: 20px; }
+        input { 
+            width: 100%; 
+            padding: 15px; 
+            margin-bottom: 15px; 
+            border-radius: 8px; 
+            border: 1px solid #2b3139; 
+            background: #1e2329; 
+            color: white; 
+            box-sizing: border-box; 
+            font-size: 16px; /* CRITICAL: Prevents zoom */
+            outline: none;
+        }
+        input:focus { border-color: #5b41ff; }
+        button { 
+            width: 100%; 
+            padding: 15px; 
+            background: #5b41ff; 
+            color: white; 
+            border: none; 
+            border-radius: 8px; 
+            font-weight: bold; 
+            font-size: 16px; 
+            cursor: pointer; 
+            margin-bottom: 10px; 
+        }
+        button:active { transform: scale(0.98); }
+        .link { text-align: center; font-size: 14px; color: #848e9c; margin-top: 15px; }
+        .link a { color: #5b41ff; text-decoration: none; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div class="box">
+    <h2>Sign Up</h2>
+    <input type="text" id="fullName" placeholder="Full Name">
+    <input type="email" id="email" placeholder="Email">
+    <input type="password" id="password" placeholder="Password (min 6 chars)">
+    <button onclick="signupUser()">Create Account</button>
+    <div class="link">Already have an account? <a href="login.html">Login</a></div>
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getAuth, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+    import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyAMucqvSoBlUo5jn5Pu4ClQIGRlInu55mQ", authDomain: "project-app-259f2.firebaseapp.com",
+      projectId: "project-app-259f2", storageBucket: "project-app-259f2.firebasestorage.app",
+      messagingSenderId: "389607996830", appId: "1:389607996830:web:a9e456c60e4608f1a9ea8f"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    window.signupUser = async function() {
+        const fullName = document.getElementById('fullName').value;
+        const email = document.getElementById('email').value;
+        const password = document.getElementById('password').value;
+
+        if(!fullName || !email || !password) return alert("Please fill in all fields.");
+        if(password.length < 6) return alert("Password must be at least 6 characters.");
+
+        try {
+            const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+            const user = userCredential.user;
+            const walletId = 'W-' + Math.floor(10000 + Math.random() * 90000);
+
+            await setDoc(doc(db, "users", user.uid), {
+                email: email, fullName: fullName, activeWalletId: walletId, role: 'customer', status: 'active', createdAt: new Date()
+            });
+
+            await setDoc(doc(db, "wallets", walletId), {
+                ownerUid: user.uid,
+                balances: { BTC: 0.001 }, // Starting balance
+                createdAt: new Date()
+            });
+
+            alert("Account created successfully! Your Wallet ID is: " + walletId);
+            window.location.href = "dashboard.html"; // Fixed Redirect
+
+        } catch (error) {
+            alert("Signup Failed: " + error.message);
+        }
+    }
+</script>
+</body>
+</html>

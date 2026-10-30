@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Chart & Trade</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
+    <style>
+        :root { --bg: #0b0e11; --card: #181a20; --text: #ffffff; --muted: #848e9c; --green: #0ecb81; --red: #f6465d; --purple: #5b41ff; }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, sans-serif; -webkit-tap-highlight-color: transparent; }
+        body { background: var(--bg); color: var(--text); padding-bottom: 100px; overflow-x: hidden; display: flex; flex-direction: column; min-height: 100vh; }
+        
+        .toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%) translateY(-20px); background: var(--red); color: white; padding: 12px 24px; border-radius: 25px; font-weight: bold; font-size: 14px; z-index: 9999; opacity: 0; transition: 0.3s; box-shadow: 0 4px 12px rgba(0,0,0,0.5); pointer-events: none;}
+        .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+        .toast.success { background: var(--green); color: black; }
+
+        .header { display: flex; justify-content: space-between; padding: 15px 20px; align-items: center; }
+        .header-left { display: flex; align-items: center; gap: 10px; font-size: 20px; font-weight: bold; }
+        .back-btn { background: #1e2329; width: 36px; height: 36px; border-radius: 50%; display: flex; justify-content: center; align-items: center; cursor: pointer; margin-right: 5px;}
+        .header-right { display: flex; gap: 15px; font-size: 20px; color: var(--muted); }
+        
+        .price-header { padding: 0 20px; display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 10px; }
+        .price-header h1 { font-size: 32px; font-weight: 700; }
+        .price-header p { color: var(--green); font-size: 14px; font-weight: 500; }
+
+        #chart-container { width: 100%; height: 320px; background: var(--bg); position: relative; }
+        
+        .timeframes { display: flex; justify-content: space-around; padding: 10px 20px; border-bottom: 1px solid #1e2329; color: var(--muted); font-size: 14px; margin-bottom: 20px; font-weight: 600;}
+        .timeframe { cursor: pointer; padding: 4px 12px; border-radius: 15px; transition: 0.2s;}
+        .timeframe.active { color: white; background: #2b3139; }
+
+        .trade-panel { padding: 0 20px; flex: 1; }
+        
+        .balance-row { display: flex; justify-content: space-between; font-size: 14px; color: var(--muted); margin-bottom: 20px; }
+        .balance-row strong { color: var(--text); }
+        
+        .input-group { margin-bottom: 20px; }
+        .input-group label { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); margin-bottom: 8px; text-transform: uppercase; font-weight: 600;}
+        .error-text { color: var(--red); display: none; }
+        
+        .trade-input { width: 100%; padding: 15px; background: #1e2329; border: 1px solid #2b3139; color: white; border-radius: 12px; font-size: 18px; font-weight: 500; outline: none; transition: 0.2s;}
+        .trade-input:focus { border-color: var(--purple); }
+        .trade-input.invalid { border-color: var(--red); }
+        
+        .duration-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 30px; }
+        .duration-btn { background: #1e2329; border: 1px solid #2b3139; color: var(--muted); padding: 12px 0; border-radius: 10px; font-size: 14px; font-weight: bold; cursor: pointer; text-align: center; transition: 0.2s;}
+        .duration-btn span { display: block; font-size: 11px; color: var(--green); margin-top: 4px; }
+        .duration-btn.active { border-color: var(--purple); background: rgba(91, 65, 255, 0.1); color: white; }
+
+        .trade-buttons { display: flex; gap: 15px; margin-bottom: 20px; }
+        .btn-trade { flex: 1; padding: 18px; border-radius: 30px; border: none; font-size: 16px; font-weight: bold; color: white; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 8px; transition: 0.2s;}
+        .btn-buy { background: var(--green); color: #000; }
+        .btn-sell { background: var(--red); }
+        .btn-trade:active { transform: scale(0.98); }
+        
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 1000; justify-content: center; align-items: flex-end; }
+        .modal-content { background: var(--card); padding: 20px; border-radius: 20px 20px 0 0; width: 100%; max-width: 500px; animation: slideUp 0.3s ease-out; }
+        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+        .modal-header { display: flex; justify-content: space-between; margin-bottom: 20px; }
+        .modal-header h3 { font-size: 18px; }
+        .modal-header i { cursor: pointer; font-size: 20px; color: var(--muted); }
+        
+        .summary-row { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #2b3139; font-size: 14px; }
+        .summary-row.total { border-bottom: none; font-size: 18px; font-weight: bold; color: var(--green); margin-top: 10px; }
+        .btn-confirm { width: 100%; padding: 16px; border-radius: 12px; border: none; font-weight: bold; font-size: 16px; cursor: pointer; margin-top: 15px; }
+        .btn-confirm:disabled { opacity: 0.7; cursor: not-allowed; }
+    </style>
+</head>
+<body>
+
+<div id="toast" class="toast">Notification</div>
+
+<div class="header">
+    <div class="header-left">
+        <div class="back-btn" onclick="window.history.back()"><i class="fa-solid fa-chevron-left"></i></div>
+        <span id="coin-symbol">BTC</span>
+    </div>
+    <div class="header-right">
+        <i class="fa-solid fa-share-nodes" onclick="shareCurrentAsset()"></i>
+    </div>
+</div>
+
+<div class="price-header">
+    <div>
+        <h1 id="current-price">$0.00</h1>
+        <p id="price-change">+$0.00 (0.00%)</p>
+    </div>
+</div>
+
+<div id="chart-container"></div>
+
+<div class="timeframes">
+    <div class="timeframe" onclick="changeTimeframe('1H', this)">1H</div>
+    <div class="timeframe active" onclick="changeTimeframe('1D', this)">1D</div>
+    <div class="timeframe" onclick="changeTimeframe('1W', this)">1W</div>
+    <div class="timeframe" onclick="changeTimeframe('1M', this)">1M</div>
+    <div class="timeframe" onclick="changeTimeframe('ALL', this)">ALL</div>
+</div>
+
+<div class="trade-panel">
+    <div class="balance-row">
+        <span>Available:</span>
+        <strong id="panel-balance">0 BTC</strong>
+    </div>
+
+    <div class="input-group">
+        <label>
+            <span>Amount to Trade</span>
+            <span class="error-text" id="error-text">Not enough balance!</span>
+        </label>
+        <input type="number" class="trade-input" id="trade-amount" placeholder="0.00" step="any" min="0">
+    </div>
+
+    <div class="input-group">
+        <label>Duration</label>
+        <div class="duration-grid" id="duration-grid">
+            <div class="duration-btn" data-ms="60000" data-mult="1.5">1m <br><span>1.5x</span></div>
+            <div class="duration-btn active" data-ms="300000" data-mult="2">5m <br><span>2x</span></div>
+            <div class="duration-btn" data-ms="900000" data-mult="2.5">15m <br><span>2.5x</span></div>
+            <div class="duration-btn" data-ms="3600000" data-mult="3">1h <br><span>3x</span></div>
+        </div>
+    </div>
+
+    <div class="trade-buttons">
+        <button class="btn-trade btn-buy" onclick="openConfirmTrade('BUY')">BUY ↗</button>
+        <button class="btn-trade btn-sell" onclick="openConfirmTrade('SELL')">SELL ↘</button>
+    </div>
+</div>
+
+<div class="modal" id="confirm-modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 id="ct-title">Confirm Trade</h3>
+            <i class="fa-solid fa-xmark" onclick="closeModal()"></i>
+        </div>
+        <div class="summary-row"><span>Asset</span><span id="ct-asset">BTC</span></div>
+        <div class="summary-row"><span>Direction</span><span id="ct-dir">BUY</span></div>
+        <div class="summary-row"><span>Amount</span><span id="ct-amount">0</span></div>
+        <div class="summary-row"><span>Entry Price</span><span id="ct-entry">$0.00</span></div>
+        <div class="summary-row"><span>Duration</span><span id="ct-duration">5m</span></div>
+        <div class="summary-row total"><span>Potential Payout</span><span id="ct-payout">$0.00</span></div>
+        
+        <button class="btn-confirm" id="btn-confirm-trade" onclick="executeTrade()" style="background: var(--green); color: black;">Place Trade</button>
+    </div>
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+    import { getFirestore, doc, getDoc, updateDoc, addDoc, collection, increment, Timestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyAMucqvSoBlUo5jn5Pu4ClQIGRlInu55mQ", authDomain: "project-app-259f2.firebaseapp.com",
+      projectId: "project-app-259f2", storageBucket: "project-app-259f2.firebasestorage.app",
+      messagingSenderId: "389607996830", appId: "1:389607996830:web:a9e456c60e4608f1a9ea8f"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const symbol = urlParams.get('symbol') || 'BTC';
+    const basePrice = parseFloat(urlParams.get('price')) || 79564;
+
+    let currentUserId = null;
+    let currentWalletId = null;
+    let userCoinBalance = 0;
+    let selectedDuration = { ms: 300000, label: '5m', mult: 2 };
+    let pendingTrade = null;
+
+    window.showToast = function(message, isSuccess = false) {
+        const toast = document.getElementById('toast');
+        toast.innerText = message;
+        toast.className = isSuccess ? 'toast success show' : 'toast show';
+        setTimeout(() => { toast.classList.remove('show'); }, 3000);
+    }
+
+    document.getElementById('coin-symbol').innerText = symbol;
+    document.getElementById('current-price').innerText = '$' + basePrice.toLocaleString(undefined, {minimumFractionDigits: 2});
+
+    const chartContainer = document.getElementById('chart-container');
+    const chart = LightweightCharts.createChart(chartContainer, {
+        width: chartContainer.clientWidth, height: 320,
+        layout: { backgroundColor: '#0b0e11', textColor: '#848e9c' },
+        grid: { vertLines: { color: '#1e2329' }, horzLines: { color: '#1e2329' } },
+        rightPriceScale: { borderColor: '#2b3139' }, 
+        timeScale: { borderColor: '#2b3139', timeVisible: true }
+    });
+
+    const candlestickSeries = chart.addSeries(LightweightCharts.CandlestickSeries, {
+        upColor: '#0ecb81', downColor: '#f6465d', borderVisible: false, wickUpColor: '#0ecb81', wickDownColor: '#f6465d',
+    });
+
+    window.addEventListener('resize', () => chart.applyOptions({ width: chartContainer.clientWidth }));
+
+    function generateChartData(timeframe) {
+        let data = []; let currentPrice = basePrice; let time = Math.floor(Date.now() / 1000);
+        let points = 24; let interval = 3600;
+
+        if (timeframe === '1H') { points = 60; interval = 60; } 
+        else if (timeframe === '1D') { points = 24; interval = 3600; } 
+        else if (timeframe === '1W') { points = 42; interval = 14400; } 
+        else if (timeframe === '1M') { points = 30; interval = 86400; } 
+        else if (timeframe === 'ALL') { points = 52; interval = 604800; } 
+
+        time = time - (points * interval);
+        for (let i = 0; i < points; i++) {
+            let open = currentPrice;
+            let change = (Math.random() - 0.48) * open * 0.03; 
+            let close = open + change;
+            let high = Math.max(open, close) + (Math.random() * open * 0.01);
+            let low = Math.min(open, close) - (Math.random() * open * 0.01);
+            data.push({ time: time + (i * interval), open: open, high: high, low: low, close: close });
+            currentPrice = close;
+        }
+        return data;
+    }
+
+    window.changeTimeframe = function(timeframe, btnElement) {
+        document.querySelectorAll('.timeframe').forEach(el => el.classList.remove('active'));
+        btnElement.classList.add('active');
+        const newData = generateChartData(timeframe);
+        candlestickSeries.setData(newData);
+        chart.timeScale().fitContent();
+        
+        const lastCandle = newData[newData.length - 1];
+        document.getElementById('current-price').innerText = '$' + lastCandle.close.toLocaleString(undefined, {minimumFractionDigits: 2});
+    }
+
+    setTimeout(() => { changeTimeframe('1D', document.querySelector('.timeframe.active')); }, 100);
+
+    onAuthStateChanged(auth, async (user) => {
+        if (user) {
+            currentUserId = user.uid;
+            const userDoc = await getDoc(doc(db, "users", currentUserId));
+            if (userDoc.exists()) {
+                currentWalletId = userDoc.data().activeWalletId;
+                const walletDoc = await getDoc(doc(db, "wallets", currentWalletId));
+                if (walletDoc.exists()) {
+                    userCoinBalance = parseFloat(walletDoc.data().balances[symbol]) || 0;
+                    updateBalanceUI();
+                }
+            }
+        } else {
+            window.location.href = 'login.html';
+        }
+    });
+
+    function updateBalanceUI() {
+        document.getElementById('panel-balance').innerText = `${userCoinBalance} ${symbol}`;
+    }
+
+    document.getElementById('trade-amount').addEventListener('input', function() {
+        const amt = parseFloat(this.value) || 0;
+        const errorText = document.getElementById('error-text');
+        
+        if (amt > userCoinBalance) {
+            this.classList.add('invalid');
+            errorText.style.display = 'block';
+        } else {
+            this.classList.remove('invalid');
+            errorText.style.display = 'none';
+        }
+    });
+
+    document.querySelectorAll('.duration-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.duration-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            selectedDuration = {
+                ms: parseInt(btn.dataset.ms),
+                label: btn.innerText.split('\n')[0],
+                mult: parseFloat(btn.dataset.mult)
+            };
+        });
+    });
+
+    window.openConfirmTrade = function(direction) {
+        try {
+            const amt = parseFloat(document.getElementById('trade-amount').value);
+            
+            if(isNaN(amt) || amt <= 0) {
+                return showToast("Please enter a valid amount.");
+            }
+            
+            if(amt > userCoinBalance) {
+                return showToast(`Insufficient ${symbol} balance!`);
+            }
+
+            const priceText = document.getElementById('current-price').innerText;
+            const currentPrice = parseFloat(priceText.replace(/[^0-9.]/g, ''));
+            
+            if (isNaN(currentPrice)) {
+                 return showToast("Error reading market price.");
+            }
+
+            const stakeValue = amt * currentPrice;
+            
+            pendingTrade = { 
+                asset: symbol, 
+                direction: direction, 
+                amount: amt, 
+                entryPrice: currentPrice, 
+                stakeValue: stakeValue, 
+                duration: selectedDuration 
+            };
+
+            document.getElementById('ct-title').innerText = `${direction} Trade`;
+            document.getElementById('ct-asset').innerText = symbol;
+            document.getElementById('ct-dir').innerText = direction;
+            document.getElementById('ct-dir').style.color = direction === 'BUY' ? 'var(--green)' : 'var(--red)';
+            document.getElementById('ct-amount').innerText = `${amt} ${symbol}`;
+            document.getElementById('ct-entry').innerText = `$${currentPrice.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
+            document.getElementById('ct-duration').innerText = selectedDuration.label;
+            document.getElementById('ct-payout').innerText = `$${(stakeValue * selectedDuration.mult).toFixed(2)}`;
+            
+            const btn = document.getElementById('btn-confirm-trade');
+            btn.style.background = direction === 'BUY' ? 'var(--green)' : 'var(--red)';
+            btn.style.color = direction === 'BUY' ? 'black' : 'white';
+
+            document.getElementById('confirm-modal').style.display = 'flex';
+        } catch (error) {
+            console.error("Error opening modal:", error);
+            showToast("Error: " + error.message);
+        }
+    }
+
+    window.closeModal = function() {
+        document.getElementById('confirm-modal').style.display = 'none';
+        pendingTrade = null;
+    }
+
+    window.executeTrade = async function() {
+        const btn = document.getElementById('btn-confirm-trade');
+        if (btn.disabled) return;
+        if (!pendingTrade) return showToast("Trade data lost. Try again.");
+
+        const trade = { ...pendingTrade };
+        btn.innerText = "Processing...";
+        btn.disabled = true;
+
+        try {
+            const expiresAt = new Date(Date.now() + trade.duration.ms);
+            
+            const userDoc = await getDoc(doc(db, "users", currentUserId));
+            let tradesCount = userDoc.data()?.tradesCount || 0;
+            
+            const willWin = (tradesCount % 20) < 16; 
+            
+            await updateDoc(doc(db, "users", currentUserId), { tradesCount: increment(1) });
+
+            const walletRef = doc(db, "wallets", currentWalletId);
+            await updateDoc(walletRef, { [`balances.${trade.asset}`]: increment(-trade.amount) });
+
+            await addDoc(collection(db, "trades"), {
+                uid: currentUserId,
+                walletId: currentWalletId,
+                asset: trade.asset,
+                direction: trade.direction,
+                amount: trade.amount,
+                entryPrice: trade.entryPrice,
+                stakeValue: trade.stakeValue,
+                durationMs: trade.duration.ms,
+                durationLabel: trade.duration.label,
+                payoutMultiplier: trade.duration.mult,
+                status: 'open',
+                willWin: willWin,
+                expiresAt: Timestamp.fromDate(expiresAt),
+                createdAt: new Date()
+            });
+
+            showToast(`✅ ${trade.direction} Trade Placed!`, true);
+            closeModal();
+            
+            document.getElementById('trade-amount').value = '';
+            document.getElementById('error-text').style.display = 'none';
+            document.getElementById('trade-amount').classList.remove('invalid');
+            userCoinBalance -= trade.amount;
+            updateBalanceUI();
+
+        } catch (e) {
+            console.error("Trade Error:", e);
+            showToast("Error: " + e.message);
+        } finally {
+            btn.innerText = "Place Trade";
+            btn.disabled = false;
+        }
+    }
+
+    window.shareCurrentAsset = function() {
+        if (navigator.share) { navigator.share({ title: 'Trade ' + symbol, url: window.location.href }).catch(console.error); } 
+        else { showToast("Link copied!", true); navigator.clipboard.writeText(window.location.href); }
+    }
+</script>
+<!-- GLOBAL TRADE RESOLVER -->
+<script type="module" src="trade-resolver.js"></script>
+</body>
+</html>
