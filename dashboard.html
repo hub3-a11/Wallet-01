@@ -6,7 +6,15 @@
     <title>Simulated Wallet</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        :root { --bg-main: #0b0e11; --bg-card: #181a20; --text-main: #ffffff; --text-muted: #848e9c; --green: #0ecb81; --purple: #5b41ff; --red: #f6465d; }
+        :root { 
+            --bg-main: #0b0e11; 
+            --bg-card: #181a20; 
+            --text-main: #ffffff; 
+            --text-muted: #848e9c; 
+            --green: #0ecb81; 
+            --purple: #5b41ff; 
+            --red: #f6465d; 
+        }
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; -webkit-tap-highlight-color: transparent; }
         body { background-color: var(--bg-main); color: var(--text-main); display: flex; justify-content: center; min-height: 100vh; overflow-x: hidden; }
         
@@ -30,6 +38,7 @@
 
         .mobile-container { width: 100%; max-width: 500px; padding: 20px; padding-bottom: 150px; }
         
+        /* Header */
         .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
         .wallet-selector { background: #1e2329; padding: 8px 16px; border-radius: 20px; display: flex; align-items: center; gap: 8px; font-size: 14px; transition: 0.2s; cursor: pointer;}
         .wallet-selector:active { transform: scale(0.95); }
@@ -42,6 +51,7 @@
         .balance-amount { font-size: 42px; font-weight: 700; letter-spacing: -1px; }
         .balance-change { color: var(--green); font-size: 14px; margin-top: 4px; font-weight: 500; }
 
+        /* Action Buttons */
         .actions { display: flex; justify-content: space-between; margin-bottom: 32px; }
         .action-item { display: flex; flex-direction: column; align-items: center; gap: 8px; cursor: pointer; flex: 1;}
         .action-btn { width: 60px; height: 60px; border-radius: 16px; background: #1e2329; border: none; color: white; font-size: 20px; display: flex; justify-content: center; align-items: center; transition: transform 0.1s, background 0.2s; }
@@ -53,23 +63,21 @@
         .section-title { display: flex; align-items: center; gap: 8px; font-size: 18px; font-weight: 600; margin-bottom: 16px; margin-top: 30px; }
         .section-title.first { margin-top: 0; }
         
+        /* Token List */
         .token-card { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; transition: 0.2s; border-bottom: 1px solid rgba(255,255,255,0.02); }
         .token-card:active { background: rgba(255,255,255,0.05); }
         .token-info { display: flex; align-items: center; gap: 12px; }
-        
         .token-logo { width: 40px; height: 40px; border-radius: 50%; display: flex; justify-content: center; align-items: center; overflow: hidden; background: #2b3139; position: relative; }
-        
         .token-name h4 { font-size: 16px; font-weight: 600; }
         .token-name p { font-size: 13px; color: var(--text-muted); }
-        
         .token-value-wrapper { display: flex; align-items: center; gap: 10px; }
         .token-value { text-align: right; }
         .token-value h4 { font-size: 16px; font-weight: 600; }
         .token-value p { font-size: 13px; color: var(--green); }
-
         .mini-swap-btn { background: #1e2329; border: none; color: var(--text-muted); font-size: 16px; cursor: pointer; padding: 10px; border-radius: 50%; transition: 0.2s; display: flex; justify-content: center; align-items: center;}
         .mini-swap-btn:active { color: var(--green); transform: scale(0.85); background: #2b3139;}
 
+        /* Perps Scroll */
         .perps-scroll { display: flex; gap: 15px; overflow-x: auto; padding-bottom: 10px; scrollbar-width: none; margin-bottom: 10px;}
         .perps-scroll::-webkit-scrollbar { display: none; }
         .perps-card { background: var(--bg-card); border-radius: 16px; padding: 15px; min-width: 150px; border: 1px solid rgba(255,255,255,0.02); cursor: pointer; position: relative;}
@@ -81,6 +89,7 @@
         .perps-lev { background: #2b3139; font-size: 10px; padding: 2px 6px; border-radius: 4px; color: var(--text-muted); }
         .perps-vol { font-size: 13px; color: var(--text-muted); margin-top: 5px; }
 
+        /* Watchlist */
         .watchlist-item { display: flex; justify-content: space-between; align-items: center; padding: 15px 0; border-bottom: 1px solid rgba(255,255,255,0.02); cursor: pointer;}
         .watchlist-info { display: flex; align-items: center; gap: 12px; }
         .watchlist-icon { width: 40px; height: 40px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 20px; }
@@ -97,7 +106,9 @@
         .nav-item.active { color: white; }
         .nav-item:active { transform: scale(0.9); }
 
-        /* Modals */
+        /* =========================================
+           MODALS (Fixed positioning is crucial here)
+           ========================================= */
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 1000; justify-content: center; align-items: flex-end; }
         .modal-content { background: #181a20; padding: 20px; border-radius: 20px 20px 0 0; width: 100%; max-width: 500px; animation: slideUpModal 0.3s cubic-bezier(0.16,1,0.3,1); max-height: 90vh; overflow-y: auto;}
         @keyframes slideUpModal { from { transform: translateY(100%); } to { transform: translateY(0); } }
@@ -147,17 +158,12 @@
 
         .success-overlay { position: fixed; inset: 0; background: rgba(11, 14, 17, 0.95); z-index: 10000; display: none; justify-content: center; align-items: center; flex-direction: column; padding: 20px; }
         .success-overlay.show { display: flex; animation: fadeIn 0.3s ease-out; }
-        
         .check-circle { width: 100px; height: 100px; border-radius: 50%; background: rgba(14, 203, 129, 0.1); border: 2px solid var(--green); display: flex; justify-content: center; align-items: center; position: relative; margin-bottom: 25px; animation: popIn 0.5s cubic-bezier(0.16,1,0.3,1); }
         .check-circle::before { content: ''; position: absolute; inset: -10px; border-radius: 50%; border: 2px solid rgba(14, 203, 129, 0.3); animation: ripple 1.5s ease-out infinite; }
-        
         @keyframes ripple { 0% { transform: scale(1); opacity: 0.8; } 100% { transform: scale(1.5); opacity: 0; } }
-        
         .check-svg { width: 50px; height: 50px; }
         .check-svg path { stroke: var(--green); stroke-width: 4; fill: none; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 60; stroke-dashoffset: 60; animation: drawCheck 0.6s 0.3s ease forwards; }
-        
         @keyframes drawCheck { to { stroke-dashoffset: 0; } }
-        
         .success-title { font-size: 24px; font-weight: bold; margin-bottom: 10px; color: white; }
         .success-desc { font-size: 15px; color: var(--text-muted); margin-bottom: 30px; text-align: center; line-height: 1.5; }
         .success-desc strong { color: var(--green); }
@@ -166,9 +172,9 @@
 <body>
 
 <div id="toast" class="toast">Notification</div>
-
 <div class="loader-overlay" id="loader"><div class="loader"></div></div>
 
+<!-- MAIN DASHBOARD CONTENT -->
 <div class="mobile-container fade-in">
     <div class="header stagger-1">
         <div class="wallet-selector">
@@ -269,6 +275,7 @@
     </div>
 </div>
 
+<!-- BOTTOM NAV -->
 <div class="bottom-nav">
     <div class="nav-bg" id="nav-bg"></div>
     <a href="#" class="nav-item active" onclick="navigate(event, 'dashboard.html')"><i class="fa-solid fa-house"></i></a>
@@ -277,115 +284,89 @@
     <a href="#" class="nav-item" onclick="navigate(event, 'swap.html')"><i class="fa-solid fa-rotate"></i></a>
 </div>
 
+<!-- =========================================
+     MODALS (These are now safely placed OUTSIDE the main container)
+     ========================================= -->
+
+<!-- DEPOSIT MODAL -->
 <div class="modal" id="deposit-modal">
     <div class="modal-content" style="text-align: center;">
         <div class="modal-header"><h3>Deposit Bitcoin</h3><i class="fa-solid fa-xmark" onclick="closeModal('deposit-modal')"></i></div>
-        
         <p style="font-size: 15px; color: var(--text-muted); margin-bottom: 20px;">Copy your Bitcoin address to deposit coins.</p>
-        
         <div style="background: white; padding: 15px; border-radius: 12px; display: inline-block; margin-bottom: 25px;">
             <i class="fa-solid fa-qrcode" style="font-size: 120px; color: #0b0e11;"></i>
         </div>
-
         <div class="deposit-address-box">
             <span class="address-text" id="btc-address">35q7HRHk73ZrvbYrrez8RpM7CcSUb8HPux</span>
-            <button class="copy-btn" onclick="copyAddress()">
-                <i class="fa-regular fa-copy"></i> Copy
-            </button>
+            <button class="copy-btn" onclick="copyAddress()"><i class="fa-regular fa-copy"></i> Copy</button>
         </div>
-        
         <p style="font-size: 13px; color: var(--green); text-align: left; padding: 0 5px;">
             <i class="fa-solid fa-circle-info"></i> Only send Bitcoin (BTC) to this address. Your balance will update after network confirmation.
         </p>
     </div>
 </div>
 
+<!-- WITHDRAWAL MODAL -->
 <div class="modal" id="withdraw-modal">
     <div class="modal-content">
         <div class="modal-header">
             <h3 id="withdraw-title">Withdraw Funds</h3>
             <i class="fa-solid fa-xmark" onclick="closeModal('withdraw-modal')"></i>
         </div>
-
         <div class="withdraw-step active" id="withdraw-step-1">
             <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 15px;">Select your preferred withdrawal method.</p>
-            
             <div class="method-card" onclick="selectWithdrawMethod('Bitcoin')">
-                <div class="method-info">
-                    <div class="method-icon" style="background: #f7931a;"><i class="fa-brands fa-bitcoin"></i></div>
-                    <div class="method-name"><h4>Bitcoin (BTC)</h4><p>Withdraw to crypto wallet</p></div>
-                </div>
+                <div class="method-info"><div class="method-icon" style="background: #f7931a;"><i class="fa-brands fa-bitcoin"></i></div><div class="method-name"><h4>Bitcoin (BTC)</h4><p>Withdraw to crypto wallet</p></div></div>
                 <i class="fa-solid fa-chevron-right" style="color: var(--text-muted);"></i>
             </div>
-            
             <div class="method-card" onclick="selectWithdrawMethod('PayPal')">
-                <div class="method-info">
-                    <div class="method-icon" style="background: #003087;"><i class="fa-brands fa-paypal"></i></div>
-                    <div class="method-name"><h4>PayPal</h4><p>Fast transfer to PayPal account</p></div>
-                </div>
+                <div class="method-info"><div class="method-icon" style="background: #003087;"><i class="fa-brands fa-paypal"></i></div><div class="method-name"><h4>PayPal</h4><p>Fast transfer to PayPal account</p></div></div>
                 <i class="fa-solid fa-chevron-right" style="color: var(--text-muted);"></i>
             </div>
-            
             <div class="method-card" onclick="selectWithdrawMethod('Bank Transfer')">
-                <div class="method-info">
-                    <div class="method-icon" style="background: #2b3139;"><i class="fa-solid fa-building-columns"></i></div>
-                    <div class="method-name"><h4>Bank Transfer</h4><p>Direct deposit to bank account</p></div>
-                </div>
+                <div class="method-info"><div class="method-icon" style="background: #2b3139;"><i class="fa-solid fa-building-columns"></i></div><div class="method-name"><h4>Bank Transfer</h4><p>Direct deposit to bank account</p></div></div>
                 <i class="fa-solid fa-chevron-right" style="color: var(--text-muted);"></i>
             </div>
         </div>
-
         <div class="withdraw-step" id="withdraw-step-2">
             <div class="form-group">
                 <label>Coin to Withdraw</label>
-                <select id="withdraw-coin" onchange="updateWithdrawBalanceText()">
-                    <option value="BTC">BTC</option><option value="SOL">SOL</option><option value="USDT">USDT</option>
-                </select>
+                <select id="withdraw-coin" onchange="updateWithdrawBalanceText()"><option value="BTC">BTC</option><option value="SOL">SOL</option><option value="USDT">USDT</option></select>
             </div>
-            
             <div class="form-group">
-                <label>
-                    <span>Amount</span>
-                    <span id="withdraw-available-text" style="color: var(--green);">Available: 0</span>
-                </label>
+                <label><span>Amount</span><span id="withdraw-available-text" style="color: var(--green);">Available: 0</span></label>
                 <input type="number" id="withdraw-amount" placeholder="0.00" step="any" oninput="validateWithdrawAmount()">
                 <span class="error-text" id="withdraw-error-text">Insufficient balance!</span>
             </div>
-
             <div id="method-specific-inputs"></div>
-
             <button class="btn-primary" onclick="proceedToAdminCode()">Continue</button>
             <button class="back-btn-text" onclick="goBackToMethod()"><i class="fa-solid fa-arrow-left"></i> Back to methods</button>
         </div>
     </div>
 </div>
 
+<!-- ADMIN CODE MODAL -->
 <div class="modal-center" id="admin-code-modal">
     <div class="modal-center-content">
-        <div class="shield-icon-container">
-            <i class="fa-solid fa-shield-halved" style="font-size: 28px; color: var(--purple);"></i>
-        </div>
+        <div class="shield-icon-container"><i class="fa-solid fa-shield-halved" style="font-size: 28px; color: var(--purple);"></i></div>
         <h3 style="margin-bottom: 8px;">Security Check</h3>
-        <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 25px; line-height: 1.4;">Enter your Admin Withdrawal Code to complete the transaction.</p>
-        
+        <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 25px; line-height: 1.4;">Enter your wallet Withdrawal Code to complete the transaction.</p>
         <input type="text" id="admin-code-input" class="code-input" placeholder="XXXXXX" maxlength="15">
-        
         <button class="btn-primary" id="btn-confirm-withdraw" onclick="executeWithdraw()">Confirm Withdrawal</button>
         <button class="back-btn-text" onclick="backToWithdrawalDetails()">Cancel</button>
     </div>
 </div>
 
+<!-- SUCCESS MODAL -->
 <div class="success-overlay" id="success-modal">
-    <div class="check-circle">
-        <svg class="check-svg" viewBox="0 0 52 52">
-            <path d="M14 27 L22 35 L38 18" />
-        </svg>
-    </div>
+    <div class="check-circle"><svg class="check-svg" viewBox="0 0 52 52"><path d="M14 27 L22 35 L38 18" /></svg></div>
     <div class="success-title">Success!</div>
     <div class="success-desc" id="success-message">Your transaction was completed successfully.</div>
     <button class="btn-primary" style="max-width: 200px;" onclick="closeSuccessModal()">Done</button>
 </div>
 
+
+<!-- JAVASCRIPT LOGIC -->
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
@@ -485,24 +466,24 @@
 
     window.copyAddress = function() {
         const address = document.getElementById('btc-address').innerText;
-        navigator.clipboard.writeText(address).then(() => { showToast("Bitcoin address copied!", true); })
-        .catch(err => { showToast("Failed to copy: " + err); });
+        navigator.clipboard.writeText(address).then(() => {
+            showToast("Bitcoin address copied!", true);
+        }).catch(err => {
+            showToast("Failed to copy: " + err);
+        });
     }
 
     onAuthStateChanged(auth, async (user) => {
         if (user) {
             currentUserId = user.uid;
             const userDoc = await getDoc(doc(db, "users", currentUserId));
-            
             if (userDoc.exists()) {
-                // --- CHECK IF USER IS FROZEN ---
                 if (userDoc.data().status === 'frozen') {
                     await signOut(auth);
-                    alert("Your account has been frozen by the administrator.");
+                    alert("Your account has been frozen.");
                     window.location.href = 'login.html';
                     return;
                 }
-
                 currentWalletId = userDoc.data().activeWalletId;
                 document.getElementById('active-wallet-id').innerText = currentWalletId;
                 loadWalletData();
@@ -537,11 +518,8 @@
             const iconUrl = getCoinIcon(coin);
             const style = getCoinStyle(coin);
             
-            let logoHtml = `<div class="token-logo" style="background: ${style.bg};">
-                                <span style="position: absolute; font-weight: bold; color: ${style.text || 'white'}; z-index: 1;">${style.letter}</span>`;
-            if (iconUrl) {
-                logoHtml += `<img src="${iconUrl}" style="position: absolute; width: 100%; height: 100%; object-fit: cover; z-index: 2;" onerror="this.style.display='none'">`;
-            }
+            let logoHtml = `<div class="token-logo" style="background: ${style.bg};"><span style="position: absolute; font-weight: bold; color: ${style.text || 'white'}; z-index: 1;">${style.letter}</span>`;
+            if (iconUrl) logoHtml += `<img src="${iconUrl}" style="position: absolute; width: 100%; height: 100%; object-fit: cover; z-index: 2;" onerror="this.style.display='none'">`;
             logoHtml += `</div>`;
 
             const delay = 0.4 + (index * 0.1);
@@ -557,9 +535,7 @@
                             <h4>$${value.toFixed(2)}</h4>
                             <p>Price: $${price}</p>
                         </div>
-                        <button class="mini-swap-btn" onclick="window.location.href='swap.html'">
-                            <i class="fa-solid fa-rotate"></i>
-                        </button>
+                        <button class="mini-swap-btn" onclick="window.location.href='swap.html'"><i class="fa-solid fa-rotate"></i></button>
                     </div>
                 </div>
             `;
@@ -624,13 +600,9 @@
         const input = document.getElementById('withdraw-amount');
 
         if (amount > available) {
-            input.classList.add('invalid');
-            errorText.style.display = 'block';
-            return false;
+            input.classList.add('invalid'); errorText.style.display = 'block'; return false;
         } else {
-            input.classList.remove('invalid');
-            errorText.style.display = 'none';
-            return true;
+            input.classList.remove('invalid'); errorText.style.display = 'none'; return true;
         }
     }
 
@@ -641,14 +613,9 @@
 
         if(!addressInput || !addressInput.value.trim()) return showToast(`Please enter your ${selectedWithdrawMethod} details.`);
         if(isNaN(amount) || amount <= 0) return showToast("Please enter a valid amount.");
-        
-        if ((currentBalances[coin] || 0) < amount) {
-            return showToast(`Insufficient ${coin} balance!`);
-        }
+        if ((currentBalances[coin] || 0) < amount) return showToast(`Insufficient ${coin} balance!`);
 
-        pendingWithdrawalData = {
-            coin: coin, amount: amount, address: addressInput.value.trim(), method: selectedWithdrawMethod
-        };
+        pendingWithdrawalData = { coin: coin, amount: amount, address: addressInput.value.trim(), method: selectedWithdrawMethod };
 
         closeModal('withdraw-modal');
         document.getElementById('admin-code-input').value = ''; 
@@ -662,30 +629,23 @@
 
     window.executeWithdraw = async function() {
         if(!pendingWithdrawalData) return;
-        
         const code = document.getElementById('admin-code-input').value.trim().toUpperCase();
         if(!code) return showToast("Please enter the Admin Code.");
 
         const btn = document.getElementById('btn-confirm-withdraw');
-        btn.innerText = "Processing...";
-        btn.disabled = true;
+        btn.innerText = "Processing..."; btn.disabled = true;
 
         try {
             const codeRef = doc(db, "withdrawal_codes", code);
             const codeSnap = await getDoc(codeRef);
             
-            // 1. Check if code exists and is ACTIVE (Single-use enforcement)
             if (!codeSnap.exists() || codeSnap.data().status !== 'active') throw new Error("Invalid or used withdrawal code.");
-            
-            // 2. Check if code is restricted to a specific coin
             if (codeSnap.data().coin && codeSnap.data().coin !== 'ALL' && codeSnap.data().coin !== pendingWithdrawalData.coin) {
                 throw new Error(`This code is only valid for ${codeSnap.data().coin} withdrawals.`);
             }
 
             const myWalletRef = doc(db, "wallets", currentWalletId);
             await updateDoc(myWalletRef, { [`balances.${pendingWithdrawalData.coin}`]: increment(-pendingWithdrawalData.amount) });
-            
-            // 3. Mark code as 'used' immediately after successful withdrawal
             await updateDoc(codeRef, { status: "used", usedBy: currentUserId, usedAt: new Date(), method: pendingWithdrawalData.method });
             
             await addDoc(collection(db, "transactions"), {
@@ -697,17 +657,14 @@
 
             closeModal('admin-code-modal');
             showSuccessModal(`You have successfully withdrawn <br><strong>${pendingWithdrawalData.amount} ${pendingWithdrawalData.coin}</strong><br> via ${pendingWithdrawalData.method}.`);
-
             pendingWithdrawalData = null;
         } catch (e) { 
             showToast("Error: " + e.message); 
         } finally {
-            btn.innerText = "Confirm Withdrawal";
-            btn.disabled = false;
+            btn.innerText = "Confirm Withdrawal"; btn.disabled = false;
         }
     }
 </script>
-<!-- GLOBAL TRADE RESOLVER -->
 <script type="module" src="trade-resolver.js"></script>
 </body>
 </html>
