@@ -94,14 +94,12 @@
     </div>
 </div>
 
-<!-- UPDATED BOTTOM NAV WITH SWAP -->
 <div class="bottom-nav">
     <div class="nav-bg" id="nav-bg"></div>
-    <a href="#" class="nav-item" onclick="navigate(event, 'index.html')"><i class="fa-solid fa-house"></i></a>
+    <a href="#" class="nav-item" onclick="navigate(event, 'dashboard.html')"><i class="fa-solid fa-house"></i></a>
     <a href="#" class="nav-item" onclick="navigate(event, 'markets.html')"><i class="fa-solid fa-arrow-trend-up"></i></a>
-    <!-- Changed Infinity to Rotate (Swap) -->
+    <a href="#" class="nav-item active" onclick="navigate(event, 'trade.html')"><i class="fa-solid fa-infinity"></i></a>
     <a href="#" class="nav-item" onclick="navigate(event, 'swap.html')"><i class="fa-solid fa-rotate"></i></a>
-    <a href="#" class="nav-item" onclick="alert('Search coming soon!')"><i class="fa-solid fa-magnifying-glass"></i></a>
 </div>
 
 <script type="module">
@@ -128,7 +126,6 @@
     window.addEventListener('load', () => {
         document.getElementById('loader').style.opacity = '0';
         setTimeout(() => document.getElementById('loader').style.display = 'none', 500);
-        
         setTimeout(() => {
             const activeItem = document.querySelector('.nav-item.active');
             if (activeItem) setPillPosition(activeItem);
@@ -139,21 +136,13 @@
         event.preventDefault();
         const activeItem = event.currentTarget;
         setPillPosition(activeItem);
-        
         document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
         activeItem.classList.add('active');
         setTimeout(() => window.location.href = url, 300);
     }
 
     const getCoinStyle = (symbol) => {
-        const styles = {
-            'BTC': { bg: '#f7931a', letter: 'B' },
-            'SOL': { bg: '#14f195', letter: 'S' },
-            'USDT': { bg: '#26a17b', letter: 'T' },
-            'AVAX': { bg: '#e84142', letter: 'A' },
-            'LINK': { bg: '#2a5ada', letter: 'L' },
-            'DOGE': { bg: '#c2a633', letter: 'D' }
-        };
+        const styles = { 'BTC': { bg: '#f7931a', letter: 'B' }, 'SOL': { bg: '#14f195', letter: 'S' }, 'USDT': { bg: '#26a17b', letter: 'T' }, 'AVAX': { bg: '#e84142', letter: 'A' }, 'LINK': { bg: '#2a5ada', letter: 'L' }, 'DOGE': { bg: '#c2a633', letter: 'D' } };
         return styles[symbol] || { bg: '#2b3139', letter: symbol.charAt(0) };
     };
 
@@ -214,32 +203,25 @@
             if (userDoc.exists()) {
                 const walletId = userDoc.data().activeWalletId;
                 const walletDoc = await getDoc(doc(db, "wallets", walletId));
-                
                 if (walletDoc.exists()) {
                     const balances = walletDoc.data().balances || {};
-                    
                     const coinsSnapshot = await getDocs(collection(db, "coins"));
                     const dbPrices = {};
                     coinsSnapshot.forEach(d => dbPrices[d.id] = d.data().price);
 
-                    const fallbackPrices = { 
-                        'BTC': 80000, 'SOL': 145.20, 'USDT': 1.00, 'XRP': 0.52, 'ETH': 2300, 
-                        'BNB': 580.10, 'ADA': 0.45, 'DOGE': 0.12, 'AVAX': 35.10, 'LINK': 14.50 
-                    };
+                    const fallbackPrices = { 'BTC': 80000, 'SOL': 145.20, 'USDT': 1.00, 'XRP': 0.52, 'ETH': 2300, 'BNB': 580.10, 'ADA': 0.45, 'DOGE': 0.12, 'AVAX': 35.10, 'LINK': 14.50 };
 
                     let totalUSD = 0;
                     for (const [coin, amount] of Object.entries(balances)) {
                         const price = dbPrices[coin] || fallbackPrices[coin] || 0;
                         totalUSD += amount * price;
                     }
-                    
                     document.getElementById('user-balance').innerText = '$' + totalUSD.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
                 }
             }
         }
     });
 </script>
-<!-- GLOBAL TRADE RESOLVER -->
 <script type="module" src="trade-resolver.js"></script>
 </body>
 </html>
