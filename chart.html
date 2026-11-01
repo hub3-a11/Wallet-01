@@ -73,7 +73,8 @@
 
 <div class="header">
     <div class="header-left">
-        <div class="back-btn" onclick="window.history.back()"><i class="fa-solid fa-chevron-left"></i></div>
+        <!-- Fixed back button to go to trade.html -->
+        <div class="back-btn" onclick="window.location.href='trade.html'"><i class="fa-solid fa-chevron-left"></i></div>
         <span id="coin-symbol">BTC</span>
     </div>
     <div class="header-right">
@@ -198,13 +199,11 @@
     function generateChartData(timeframe) {
         let data = []; let currentPrice = basePrice; let time = Math.floor(Date.now() / 1000);
         let points = 24; let interval = 3600;
-
         if (timeframe === '1H') { points = 60; interval = 60; } 
         else if (timeframe === '1D') { points = 24; interval = 3600; } 
         else if (timeframe === '1W') { points = 42; interval = 14400; } 
         else if (timeframe === '1M') { points = 30; interval = 86400; } 
         else if (timeframe === 'ALL') { points = 52; interval = 604800; } 
-
         time = time - (points * interval);
         for (let i = 0; i < points; i++) {
             let open = currentPrice;
@@ -224,7 +223,6 @@
         const newData = generateChartData(timeframe);
         candlestickSeries.setData(newData);
         chart.timeScale().fitContent();
-        
         const lastCandle = newData[newData.length - 1];
         document.getElementById('current-price').innerText = '$' + lastCandle.close.toLocaleString(undefined, {minimumFractionDigits: 2});
     }
@@ -243,70 +241,37 @@
                     updateBalanceUI();
                 }
             }
-        } else {
-            window.location.href = 'login.html';
-        }
+        } else { window.location.href = 'login.html'; }
     });
 
-    function updateBalanceUI() {
-        document.getElementById('panel-balance').innerText = `${userCoinBalance} ${symbol}`;
-    }
+    function updateBalanceUI() { document.getElementById('panel-balance').innerText = `${userCoinBalance} ${symbol}`; }
 
     document.getElementById('trade-amount').addEventListener('input', function() {
         const amt = parseFloat(this.value) || 0;
         const errorText = document.getElementById('error-text');
-        
-        if (amt > userCoinBalance) {
-            this.classList.add('invalid');
-            errorText.style.display = 'block';
-        } else {
-            this.classList.remove('invalid');
-            errorText.style.display = 'none';
-        }
+        if (amt > userCoinBalance) { this.classList.add('invalid'); errorText.style.display = 'block'; }
+        else { this.classList.remove('invalid'); errorText.style.display = 'none'; }
     });
 
     document.querySelectorAll('.duration-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             document.querySelectorAll('.duration-btn').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
-            selectedDuration = {
-                ms: parseInt(btn.dataset.ms),
-                label: btn.innerText.split('\n')[0],
-                mult: parseFloat(btn.dataset.mult)
-            };
+            selectedDuration = { ms: parseInt(btn.dataset.ms), label: btn.innerText.split('\n')[0], mult: parseFloat(btn.dataset.mult) };
         });
     });
 
     window.openConfirmTrade = function(direction) {
         try {
             const amt = parseFloat(document.getElementById('trade-amount').value);
-            
-            if(isNaN(amt) || amt <= 0) {
-                return showToast("Please enter a valid amount.");
-            }
-            
-            if(amt > userCoinBalance) {
-                return showToast(`Insufficient ${symbol} balance!`);
-            }
-
+            if(isNaN(amt) || amt <= 0) return showToast("Please enter a valid amount.");
+            if(amt > userCoinBalance) return showToast(`Insufficient ${symbol} balance!`);
             const priceText = document.getElementById('current-price').innerText;
             const currentPrice = parseFloat(priceText.replace(/[^0-9.]/g, ''));
-            
-            if (isNaN(currentPrice)) {
-                 return showToast("Error reading market price.");
-            }
-
+            if (isNaN(currentPrice)) return showToast("Error reading market price.");
             const stakeValue = amt * currentPrice;
+            pendingTrade = { asset: symbol, direction: direction, amount: amt, entryPrice: currentPrice, stakeValue: stakeValue, duration: selectedDuration };
             
-            pendingTrade = { 
-                asset: symbol, 
-                direction: direction, 
-                amount: amt, 
-                entryPrice: currentPrice, 
-                stakeValue: stakeValue, 
-                duration: selectedDuration 
-            };
-
             document.getElementById('ct-title').innerText = `${direction} Trade`;
             document.getElementById('ct-asset').innerText = symbol;
             document.getElementById('ct-dir').innerText = direction;
@@ -319,74 +284,45 @@
             const btn = document.getElementById('btn-confirm-trade');
             btn.style.background = direction === 'BUY' ? 'var(--green)' : 'var(--red)';
             btn.style.color = direction === 'BUY' ? 'black' : 'white';
-
             document.getElementById('confirm-modal').style.display = 'flex';
-        } catch (error) {
-            console.error("Error opening modal:", error);
-            showToast("Error: " + error.message);
-        }
+        } catch (error) { showToast("Error: " + error.message); }
     }
 
-    window.closeModal = function() {
-        document.getElementById('confirm-modal').style.display = 'none';
-        pendingTrade = null;
-    }
+    window.closeModal = function() { document.getElementById('confirm-modal').style.display = 'none'; pendingTrade = null; }
 
     window.executeTrade = async function() {
         const btn = document.getElementById('btn-confirm-trade');
         if (btn.disabled) return;
-        if (!pendingTrade) return showToast("Trade data lost. Try again.");
-
+        if (!pendingTrade) return showToast("Trade data lost.");
         const trade = { ...pendingTrade };
-        btn.innerText = "Processing...";
-        btn.disabled = true;
+        btn.innerText = "Processing..."; btn.disabled = true;
 
         try {
             const expiresAt = new Date(Date.now() + trade.duration.ms);
-            
             const userDoc = await getDoc(doc(db, "users", currentUserId));
             let tradesCount = userDoc.data()?.tradesCount || 0;
-            
             const willWin = (tradesCount % 20) < 16; 
-            
             await updateDoc(doc(db, "users", currentUserId), { tradesCount: increment(1) });
 
             const walletRef = doc(db, "wallets", currentWalletId);
             await updateDoc(walletRef, { [`balances.${trade.asset}`]: increment(-trade.amount) });
 
             await addDoc(collection(db, "trades"), {
-                uid: currentUserId,
-                walletId: currentWalletId,
-                asset: trade.asset,
-                direction: trade.direction,
-                amount: trade.amount,
-                entryPrice: trade.entryPrice,
-                stakeValue: trade.stakeValue,
-                durationMs: trade.duration.ms,
-                durationLabel: trade.duration.label,
-                payoutMultiplier: trade.duration.mult,
-                status: 'open',
-                willWin: willWin,
-                expiresAt: Timestamp.fromDate(expiresAt),
-                createdAt: new Date()
+                uid: currentUserId, walletId: currentWalletId, asset: trade.asset, direction: trade.direction,
+                amount: trade.amount, entryPrice: trade.entryPrice, stakeValue: trade.stakeValue,
+                durationMs: trade.duration.ms, durationLabel: trade.duration.label, payoutMultiplier: trade.duration.mult,
+                status: 'open', willWin: willWin, expiresAt: Timestamp.fromDate(expiresAt), createdAt: new Date()
             });
 
             showToast(`✅ ${trade.direction} Trade Placed!`, true);
             closeModal();
-            
             document.getElementById('trade-amount').value = '';
             document.getElementById('error-text').style.display = 'none';
             document.getElementById('trade-amount').classList.remove('invalid');
             userCoinBalance -= trade.amount;
             updateBalanceUI();
-
-        } catch (e) {
-            console.error("Trade Error:", e);
-            showToast("Error: " + e.message);
-        } finally {
-            btn.innerText = "Place Trade";
-            btn.disabled = false;
-        }
+        } catch (e) { showToast("Error: " + e.message); }
+        finally { btn.innerText = "Place Trade"; btn.disabled = false; }
     }
 
     window.shareCurrentAsset = function() {
@@ -394,7 +330,6 @@
         else { showToast("Link copied!", true); navigator.clipboard.writeText(window.location.href); }
     }
 </script>
-<!-- GLOBAL TRADE RESOLVER -->
 <script type="module" src="trade-resolver.js"></script>
 </body>
 </html>
