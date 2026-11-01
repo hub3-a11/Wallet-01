@@ -80,7 +80,6 @@
 <body>
 
 <div class="header">
-    <!-- The Back button goes to dashboard.html -->
     <div class="back-btn" onclick="window.location.href='dashboard.html'"><i class="fa-solid fa-arrow-left"></i></div>
     <div class="header-title">Swap</div>
     <div class="settings-btn"><i class="fa-solid fa-sliders"></i></div>
@@ -90,9 +89,7 @@
     <div class="input-card" style="margin-bottom: 10px;">
         <div class="top-row">
             <div class="amount-display" id="from-amount">0</div>
-            <button class="token-select-btn empty" id="from-token-btn" onclick="openTokenModal('from')">
-                Select token <i class="fa-solid fa-chevron-right" style="font-size: 10px;"></i>
-            </button>
+            <button class="token-select-btn empty" id="from-token-btn" onclick="openTokenModal('from')">Select token <i class="fa-solid fa-chevron-right" style="font-size: 10px;"></i></button>
         </div>
         <div style="display: flex; justify-content: space-between;">
             <div class="usd-value" id="from-usd">$0.00</div>
@@ -100,16 +97,12 @@
         </div>
     </div>
 
-    <div class="swap-arrow">
-        <div class="swap-arrow-btn"><i class="fa-solid fa-arrow-down"></i></div>
-    </div>
+    <div class="swap-arrow"><div class="swap-arrow-btn"><i class="fa-solid fa-arrow-down"></i></div></div>
 
     <div class="input-card">
         <div class="top-row">
             <div class="amount-display" id="to-amount">0</div>
-            <button class="token-select-btn" id="to-token-btn" onclick="openTokenModal('to')">
-                Select token <i class="fa-solid fa-chevron-right" style="font-size: 10px;"></i>
-            </button>
+            <button class="token-select-btn" id="to-token-btn" onclick="openTokenModal('to')">Select token <i class="fa-solid fa-chevron-right" style="font-size: 10px;"></i></button>
         </div>
         <div style="display: flex; justify-content: space-between;">
             <div class="usd-value" id="to-usd">$0.00</div>
@@ -119,17 +112,10 @@
 </div>
 
 <div class="numpad">
-    <button class="num-btn" onclick="pressNum('1')">1</button>
-    <button class="num-btn" onclick="pressNum('2')">2</button>
-    <button class="num-btn" onclick="pressNum('3')">3</button>
-    <button class="num-btn" onclick="pressNum('4')">4</button>
-    <button class="num-btn" onclick="pressNum('5')">5</button>
-    <button class="num-btn" onclick="pressNum('6')">6</button>
-    <button class="num-btn" onclick="pressNum('7')">7</button>
-    <button class="num-btn" onclick="pressNum('8')">8</button>
-    <button class="num-btn" onclick="pressNum('9')">9</button>
-    <button class="num-btn action" onclick="pressNum('.')">.</button>
-    <button class="num-btn" onclick="pressNum('0')">0</button>
+    <button class="num-btn" onclick="pressNum('1')">1</button><button class="num-btn" onclick="pressNum('2')">2</button><button class="num-btn" onclick="pressNum('3')">3</button>
+    <button class="num-btn" onclick="pressNum('4')">4</button><button class="num-btn" onclick="pressNum('5')">5</button><button class="num-btn" onclick="pressNum('6')">6</button>
+    <button class="num-btn" onclick="pressNum('7')">7</button><button class="num-btn" onclick="pressNum('8')">8</button><button class="num-btn" onclick="pressNum('9')">9</button>
+    <button class="num-btn action" onclick="pressNum('.')">.</button><button class="num-btn" onclick="pressNum('0')">0</button>
     <button class="num-btn action" onclick="backspace()"><i class="fa-solid fa-delete-left"></i></button>
 </div>
 
@@ -142,20 +128,13 @@
 
 <div class="modal" id="token-modal">
     <div class="modal-content">
-        <div class="modal-header">
-            <h3 id="modal-title">Select Token</h3>
-            <i class="fa-solid fa-xmark" onclick="closeTokenModal()"></i>
-        </div>
+        <div class="modal-header"><h3 id="modal-title">Select Token</h3><i class="fa-solid fa-xmark" onclick="closeTokenModal()"></i></div>
         <div class="token-list" id="token-list-container"></div>
     </div>
 </div>
 
 <div class="success-overlay" id="success-modal">
-    <div class="check-circle">
-        <svg class="check-svg" viewBox="0 0 52 52">
-            <path d="M14 27 L22 35 L38 18" />
-        </svg>
-    </div>
+    <div class="check-circle"><svg class="check-svg" viewBox="0 0 52 52"><path d="M14 27 L22 35 L38 18" /></svg></div>
     <div class="success-title">Swap Successful!</div>
     <div class="success-desc" id="success-message">Your transaction was completed successfully.</div>
     <button class="btn-primary" onclick="closeSuccessModal()">Done</button>
@@ -166,49 +145,21 @@
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
     import { getFirestore, doc, getDoc, updateDoc, collection, getDocs, increment } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyAMucqvSoBlUo5jn5Pu4ClQIGRlInu55mQ", authDomain: "project-app-259f2.firebaseapp.com",
-      projectId: "project-app-259f2", storageBucket: "project-app-259f2.firebasestorage.app",
-      messagingSenderId: "389607996830", appId: "1:389607996830:web:a9e456c60e4608f1a9ea8f"
-    };
+    const firebaseConfig = { apiKey: "AIzaSyAMucqvSoBlUo5jn5Pu4ClQIGRlInu55mQ", authDomain: "project-app-259f2.firebaseapp.com", projectId: "project-app-259f2", storageBucket: "project-app-259f2.firebasestorage.app", messagingSenderId: "389607996830", appId: "1:389607996830:web:a9e456c60e4608f1a9ea8f" };
+    const app = initializeApp(firebaseConfig); const auth = getAuth(app); const db = getFirestore(app);
 
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db = getFirestore(app);
-
-    let currentUserId = null;
-    let currentWalletId = null;
-    let walletBalances = {};
+    let currentUserId = null; let currentWalletId = null; let walletBalances = {};
     let coinPrices = { 'BTC': 80000, 'SOL': 145.20, 'USDT': 1.00 }; 
-    
-    let fromCoin = null;
-    let toCoin = null;
-    let inputString = "0";
-    
-    const FEE_PERCENTAGE = 0.01;
+    let fromCoin = null; let toCoin = null; let inputString = "0"; const FEE_PERCENTAGE = 0.01;
 
-    const fromAmountEl = document.getElementById('from-amount');
-    const toAmountEl = document.getElementById('to-amount');
-    const fromUsdEl = document.getElementById('from-usd');
-    const toUsdEl = document.getElementById('to-usd');
-    const fromBalanceEl = document.getElementById('from-balance');
-    const toBalanceEl = document.getElementById('to-balance');
-    const fromTokenBtn = document.getElementById('from-token-btn');
-    const toTokenBtn = document.getElementById('to-token-btn');
-    const sliderThumb = document.getElementById('slider-thumb');
-    const sliderTrack = document.getElementById('slider-track');
-    const sliderText = document.getElementById('slider-text');
+    const fromAmountEl = document.getElementById('from-amount'); const toAmountEl = document.getElementById('to-amount');
+    const fromUsdEl = document.getElementById('from-usd'); const toUsdEl = document.getElementById('to-usd');
+    const fromBalanceEl = document.getElementById('from-balance'); const toBalanceEl = document.getElementById('to-balance');
+    const fromTokenBtn = document.getElementById('from-token-btn'); const toTokenBtn = document.getElementById('to-token-btn');
+    const sliderThumb = document.getElementById('slider-thumb'); const sliderTrack = document.getElementById('slider-track'); const sliderText = document.getElementById('slider-text');
 
-    window.showSuccessModal = function(message) {
-        document.getElementById('success-message').innerHTML = message;
-        document.getElementById('success-modal').classList.add('show');
-    }
-
-    window.closeSuccessModal = function() {
-        document.getElementById('success-modal').classList.remove('show');
-        // FIXED REDIRECT HERE: Goes to dashboard.html instead of index.html
-        window.location.href = 'dashboard.html'; 
-    }
+    window.showSuccessModal = function(message) { document.getElementById('success-message').innerHTML = message; document.getElementById('success-modal').classList.add('show'); }
+    window.closeSuccessModal = function() { document.getElementById('success-modal').classList.remove('show'); window.location.href = 'dashboard.html'; }
 
     const getCoinStyle = (symbol) => {
         const styles = { 'BTC': { bg: '#f7931a', letter: '₿' }, 'SOL': { bg: '#14f195', letter: 'S' }, 'USDT': { bg: '#26a17b', letter: '₮' }, 'ETH': { bg: '#627eea', letter: 'Ξ' } };
@@ -221,55 +172,25 @@
             const userDoc = await getDoc(doc(db, "users", currentUserId));
             if (userDoc.exists()) {
                 currentWalletId = userDoc.data().activeWalletId;
-                await loadWalletData();
-                await loadCoinPrices();
-                
-                if (walletBalances['BTC'] !== undefined) {
-                    selectToken('from', 'BTC');
-                }
+                await loadWalletData(); await loadCoinPrices();
+                if (walletBalances['BTC'] !== undefined) selectToken('from', 'BTC');
             }
-        } else {
-            window.location.href = 'login.html';
-        }
+        } else { window.location.href = 'login.html'; }
     });
 
-    async function loadWalletData() {
-        const walletDoc = await getDoc(doc(db, "wallets", currentWalletId));
-        if (walletDoc.exists()) {
-            walletBalances = walletDoc.data().balances || {};
-            updateUI();
-        }
-    }
-
-    async function loadCoinPrices() {
-        const coinsSnapshot = await getDocs(collection(db, "coins"));
-        coinsSnapshot.forEach(d => { coinPrices[d.id] = d.data().price; });
-        updateUI();
-    }
+    async function loadWalletData() { const walletDoc = await getDoc(doc(db, "wallets", currentWalletId)); if (walletDoc.exists()) { walletBalances = walletDoc.data().balances || {}; updateUI(); } }
+    async function loadCoinPrices() { const coinsSnapshot = await getDocs(collection(db, "coins")); coinsSnapshot.forEach(d => { coinPrices[d.id] = d.data().price; }); updateUI(); }
 
     window.pressNum = function(num) {
-        if (inputString === "0" && num !== ".") {
-            inputString = num;
-        } else {
-            if (num === "." && inputString.includes(".")) return;
-            if (inputString.includes(".") && inputString.split(".")[1].length >= 6) return;
-            inputString += num;
-        }
+        if (inputString === "0" && num !== ".") { inputString = num; }
+        else { if (num === "." && inputString.includes(".")) return; if (inputString.includes(".") && inputString.split(".")[1].length >= 6) return; inputString += num; }
         updateUI();
     }
 
-    window.backspace = function() {
-        if (inputString.length > 1) {
-            inputString = inputString.slice(0, -1);
-        } else {
-            inputString = "0";
-        }
-        updateUI();
-    }
+    window.backspace = function() { if (inputString.length > 1) { inputString = inputString.slice(0, -1); } else { inputString = "0"; } updateUI(); }
 
     function updateUI() {
         const amount = parseFloat(inputString) || 0;
-        
         fromAmountEl.innerText = inputString;
         if (fromCoin) {
             const style = getCoinStyle(fromCoin);
@@ -297,143 +218,68 @@
         }
 
         const hasEnoughBalance = amount > 0 && amount <= (walletBalances[fromCoin] || 0);
-        if (fromCoin && toCoin && fromCoin !== toCoin && hasEnoughBalance) {
-            sliderThumb.classList.remove('disabled');
-        } else {
-            sliderThumb.classList.add('disabled');
-            resetSlider();
-        }
+        if (fromCoin && toCoin && fromCoin !== toCoin && hasEnoughBalance) { sliderThumb.classList.remove('disabled'); }
+        else { sliderThumb.classList.add('disabled'); resetSlider(); }
     }
 
     let modalType = 'from';
-
     window.openTokenModal = function(type) {
         modalType = type;
         document.getElementById('modal-title').innerText = type === 'from' ? 'Select Coin to Sell' : 'Select Coin to Buy';
-        const list = document.getElementById('token-list-container');
-        list.innerHTML = '';
-
+        const list = document.getElementById('token-list-container'); list.innerHTML = '';
         const allCoins = ['BTC', 'SOL', 'USDT', 'ETH', 'BNB', 'XRP', 'ADA', 'DOGE'];
-        
         allCoins.forEach(coin => {
             const balance = walletBalances[coin] || 0;
             if (type === 'from' && balance <= 0) return; 
-            
             const style = getCoinStyle(coin);
             list.innerHTML += `
                 <div class="token-item" onclick="selectToken('${type}', '${coin}')">
-                    <div class="token-item-left">
-                        <div class="token-icon" style="background: ${style.bg}; width: 32px; height: 32px; font-size: 16px;">${style.letter}</div>
-                        <div>
-                            <h4>${coin}</h4>
-                            <p>$${(coinPrices[coin] || 0).toFixed(2)}</p>
-                        </div>
-                    </div>
+                    <div class="token-item-left"><div class="token-icon" style="background: ${style.bg}; width: 32px; height: 32px; font-size: 16px;">${style.letter}</div><div><h4>${coin}</h4><p>$${(coinPrices[coin] || 0).toFixed(2)}</p></div></div>
                     <div class="token-item-right">${balance} ${coin}</div>
-                </div>
-            `;
+                </div>`;
         });
-
-        if (list.innerHTML === '') {
-            list.innerHTML = '<p style="text-align:center; color:var(--muted); margin-top:20px;">No coins available.</p>';
-        }
-        
+        if (list.innerHTML === '') list.innerHTML = '<p style="text-align:center; color:var(--muted); margin-top:20px;">No coins available.</p>';
         document.getElementById('token-modal').style.display = 'flex';
     }
 
     window.closeTokenModal = function() { document.getElementById('token-modal').style.display = 'none'; }
 
     window.selectToken = function(type, coin) {
-        if (type === 'from') fromCoin = coin;
-        else toCoin = coin;
-        
-        if (fromCoin === toCoin) {
-            if (type === 'from') toCoin = null;
-            else fromCoin = null;
-        }
-        
-        inputString = "0";
-        closeTokenModal();
-        resetSlider();
-        updateUI();
+        if (type === 'from') fromCoin = coin; else toCoin = coin;
+        if (fromCoin === toCoin) { if (type === 'from') toCoin = null; else fromCoin = null; }
+        inputString = "0"; closeTokenModal(); resetSlider(); updateUI();
     }
 
-    let isDragging = false;
-    let startX = 0;
-    let maxDrag = 0;
+    let isDragging = false; let startX = 0; let maxDrag = 0;
+    sliderThumb.addEventListener('mousedown', startDrag); sliderThumb.addEventListener('touchstart', startDrag, {passive: false});
+    window.addEventListener('mousemove', onDrag); window.addEventListener('touchmove', onDrag, {passive: false});
+    window.addEventListener('mouseup', endDrag); window.addEventListener('touchend', endDrag);
 
-    sliderThumb.addEventListener('mousedown', startDrag);
-    sliderThumb.addEventListener('touchstart', startDrag, {passive: false});
-    window.addEventListener('mousemove', onDrag);
-    window.addEventListener('touchmove', onDrag, {passive: false});
-    window.addEventListener('mouseup', endDrag);
-    window.addEventListener('touchend', endDrag);
-
-    function startDrag(e) {
-        if (sliderThumb.classList.contains('disabled')) return;
-        isDragging = true;
-        startX = e.type.includes('mouse') ? e.clientX : e.touches[0].clientX;
-        maxDrag = sliderTrack.clientWidth - sliderThumb.clientWidth - 8;
-        sliderThumb.style.transition = 'none';
-    }
-
+    function startDrag(e) { if (sliderThumb.classList.contains('disabled')) return; isDragging = true; startX = e.type.includes('mouse') ? e.clientX : e.touches[0].clientX; maxDrag = sliderTrack.clientWidth - sliderThumb.clientWidth - 8; sliderThumb.style.transition = 'none'; }
+    
     function onDrag(e) {
-        if (!isDragging) return;
-        if (e.cancelable) e.preventDefault();
-        
+        if (!isDragging) return; if (e.cancelable) e.preventDefault();
         const currentX = e.type.includes('mouse') ? e.clientX : e.touches[0].clientX;
         let diff = currentX - startX;
-        
-        if (diff < 0) diff = 0;
-        if (diff > maxDrag) diff = maxDrag;
-        
-        sliderThumb.style.transform = `translateX(${diff}px)`;
-        sliderText.style.opacity = 1 - (diff / maxDrag);
-        
-        if (diff >= maxDrag * 0.9) {
-            isDragging = false;
-            sliderThumb.style.transition = 'transform 0.2s';
-            sliderThumb.style.transform = `translateX(${maxDrag}px)`;
-            executeSwap();
-        }
+        if (diff < 0) diff = 0; if (diff > maxDrag) diff = maxDrag;
+        sliderThumb.style.transform = `translateX(${diff}px)`; sliderText.style.opacity = 1 - (diff / maxDrag);
+        if (diff >= maxDrag * 0.9) { isDragging = false; sliderThumb.style.transition = 'transform 0.2s'; sliderThumb.style.transform = `translateX(${maxDrag}px)`; executeSwap(); }
     }
 
-    function endDrag() {
-        if (!isDragging) return;
-        isDragging = false;
-        sliderThumb.style.transition = 'transform 0.3s cubic-bezier(0.68, -0.55, 0.27, 1.55)';
-        resetSlider();
-    }
-
-    function resetSlider() {
-        sliderThumb.style.transform = `translateX(0px)`;
-        sliderText.style.opacity = 1;
-    }
+    function endDrag() { if (!isDragging) return; isDragging = false; sliderThumb.style.transition = 'transform 0.3s cubic-bezier(0.68, -0.55, 0.27, 1.55)'; resetSlider(); }
+    function resetSlider() { sliderThumb.style.transform = `translateX(0px)`; sliderText.style.opacity = 1; }
 
     async function executeSwap() {
-        const amount = parseFloat(inputString);
-        const receiveAmount = parseFloat(toAmountEl.innerText);
-        
+        const amount = parseFloat(inputString); const receiveAmount = parseFloat(toAmountEl.innerText);
         if (!fromCoin || !toCoin || amount <= 0 || receiveAmount <= 0) return;
-
-        sliderText.innerText = "Processing...";
-        sliderThumb.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+        sliderText.innerText = "Processing..."; sliderThumb.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
 
         try {
             const walletRef = doc(db, "wallets", currentWalletId);
-            
-            await updateDoc(walletRef, {
-                [`balances.${fromCoin}`]: increment(-amount),
-                [`balances.${toCoin}`]: increment(receiveAmount)
-            });
-
+            await updateDoc(walletRef, { [`balances.${fromCoin}`]: increment(-amount), [`balances.${toCoin}`]: increment(receiveAmount) });
             showSuccessModal(`You swapped <strong>${amount} ${fromCoin}</strong><br>for <strong>${receiveAmount.toFixed(6)} ${toCoin}</strong>.`);
-            
         } catch (e) {
-            alert("Swap Failed: " + e.message);
-            sliderThumb.innerHTML = '<i class="fa-solid fa-chevron-right"></i>';
-            sliderText.innerText = "Slide to Swap";
-            resetSlider();
+            alert("Swap Failed: " + e.message); sliderThumb.innerHTML = '<i class="fa-solid fa-chevron-right"></i>'; sliderText.innerText = "Slide to Swap"; resetSlider();
         }
     }
 </script>
