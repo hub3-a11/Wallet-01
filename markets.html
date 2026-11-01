@@ -39,8 +39,6 @@
         .coin-price { text-align: right; }
         .coin-price h4 { font-size: 15px; }
         .coin-price p { font-size: 13px; }
-        
-        .share-btn { background: none; border: none; color: var(--muted); font-size: 16px; cursor: pointer; margin-left: 10px; padding: 5px; }
 
         .bottom-nav { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); width: calc(100% - 40px); max-width: 450px; background: rgba(30, 35, 41, 0.95); backdrop-filter: blur(15px); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 40px; box-shadow: 0 10px 30px rgba(0,0,0,0.8); display: flex; justify-content: space-around; align-items: center; padding: 10px 0; z-index: 999;}
         .nav-bg { position: absolute; top: 8px; left: 0; width: 55px; height: 45px; background: #2b3139; border-radius: 25px; transition: transform 0.4s cubic-bezier(0.68, -0.55, 0.27, 1.55); z-index: 0; }
@@ -73,14 +71,12 @@
     </div>
 </div>
 
-<!-- UPDATED BOTTOM NAV WITH SWAP -->
 <div class="bottom-nav">
     <div class="nav-bg" id="nav-bg"></div>
-    <a href="#" class="nav-item" onclick="navigate(event, 'index.html')"><i class="fa-solid fa-house"></i></a>
+    <a href="#" class="nav-item" onclick="navigate(event, 'dashboard.html')"><i class="fa-solid fa-house"></i></a>
     <a href="#" class="nav-item active" onclick="navigate(event, 'markets.html')"><i class="fa-solid fa-arrow-trend-up"></i></a>
-    <!-- Changed Infinity to Rotate (Swap) -->
+    <a href="#" class="nav-item" onclick="navigate(event, 'trade.html')"><i class="fa-solid fa-infinity"></i></a>
     <a href="#" class="nav-item" onclick="navigate(event, 'swap.html')"><i class="fa-solid fa-rotate"></i></a>
-    <a href="#" class="nav-item" onclick="alert('Search coming soon!')"><i class="fa-solid fa-magnifying-glass"></i></a>
 </div>
 
 <script>
@@ -93,7 +89,6 @@
     window.addEventListener('load', () => {
         document.getElementById('loader').style.opacity = '0';
         setTimeout(() => document.getElementById('loader').style.display = 'none', 500);
-        
         setTimeout(() => {
             const activeItem = document.querySelector('.nav-item.active');
             if (activeItem) setPillPosition(activeItem);
@@ -104,7 +99,6 @@
         event.preventDefault();
         const activeItem = event.currentTarget;
         setPillPosition(activeItem);
-        
         document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
         activeItem.classList.add('active');
         setTimeout(() => window.location.href = url, 300);
@@ -112,13 +106,8 @@
 
     const getCoinStyle = (symbol) => {
         const styles = {
-            'BTC': { bg: '#f7931a', letter: 'B' },
-            'SOL': { bg: '#14f195', letter: 'S' },
-            'USDT': { bg: '#26a17b', letter: 'T' },
-            'BNB': { bg: '#f3ba2f', letter: 'B' },
-            'XRP': { bg: '#23292f', letter: 'X' },
-            'ADA': { bg: '#0033ad', letter: 'A' },
-            'DOGE': { bg: '#c2a633', letter: 'D' }
+            'BTC': { bg: '#f7931a', letter: 'B' }, 'SOL': { bg: '#14f195', letter: 'S' }, 'USDT': { bg: '#26a17b', letter: 'T' },
+            'BNB': { bg: '#f3ba2f', letter: 'B' }, 'XRP': { bg: '#23292f', letter: 'X' }, 'ADA': { bg: '#0033ad', letter: 'A' }, 'DOGE': { bg: '#c2a633', letter: 'D' }
         };
         return styles[symbol] || { bg: '#2b3139', letter: symbol.charAt(0) };
     };
@@ -160,7 +149,6 @@
                         <h4>$${coin.price.toLocaleString(undefined, {minimumFractionDigits: 2})}</h4>
                         <p style="${colorClass}">${sign}${coin.change}%</p>
                     </div>
-                    <button class="share-btn" onclick="shareAsset(event, '${coin.symbol}')"><i class="fa-solid fa-share-nodes"></i></button>
                 </div>
             `;
         }).join('');
@@ -195,21 +183,10 @@
         }
     }
 
-    window.shareAsset = function(event, symbol) {
-        event.stopPropagation();
-        if (navigator.share) {
-            navigator.share({ title: 'Trade ' + symbol, text: 'Check out ' + symbol + '!', url: window.location.origin + '/chart.html?symbol=' + symbol }).catch(console.error);
-        } else {
-            alert("Link copied to clipboard!");
-            navigator.clipboard.writeText(window.location.origin + '/chart.html?symbol=' + symbol);
-        }
-    }
-
     renderBluechips(cryptoData);
     renderList(cryptoData, 'list-crypto', false);
     renderList(stocksData, 'list-stocks', true);
 </script>
-<!-- GLOBAL TRADE RESOLVER -->
 <script type="module" src="trade-resolver.js"></script>
 </body>
 </html>
