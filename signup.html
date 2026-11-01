@@ -2,57 +2,23 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <!-- Strict viewport to prevent zooming -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Sign Up - Simulated Wallet</title>
+    <title>Sign Up</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { 
-            background-color: #0b0e11; 
-            color: white; 
-            font-family: -apple-system, sans-serif; 
-            display: flex; 
-            justify-content: center; 
-            align-items: center; 
-            height: 100vh; 
-            overflow-x: hidden;
-        }
-        .box { 
-            background: #181a20; 
-            padding: 30px; 
-            border-radius: 12px; 
-            width: 100%; 
-            max-width: 350px; 
-            border: 1px solid #2b3139; 
-            margin: 20px;
-        }
+        body { background-color: #0b0e11; color: white; font-family: -apple-system, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; overflow-x: hidden; }
+        .box { background: #181a20; padding: 30px; border-radius: 12px; width: 100%; max-width: 350px; border: 1px solid #2b3139; margin: 20px; }
         h2 { text-align: center; margin-bottom: 20px; }
-        input { 
-            width: 100%; 
-            padding: 15px; 
-            margin-bottom: 15px; 
-            border-radius: 8px; 
-            border: 1px solid #2b3139; 
-            background: #1e2329; 
-            color: white; 
-            box-sizing: border-box; 
-            font-size: 16px; /* CRITICAL: Prevents zoom */
-            outline: none;
-        }
+        input { width: 100%; padding: 15px; margin-bottom: 15px; border-radius: 8px; border: 1px solid #2b3139; background: #1e2329; color: white; box-sizing: border-box; font-size: 16px; outline: none; transition: 0.2s; }
         input:focus { border-color: #5b41ff; }
-        button { 
-            width: 100%; 
-            padding: 15px; 
-            background: #5b41ff; 
-            color: white; 
-            border: none; 
-            border-radius: 8px; 
-            font-weight: bold; 
-            font-size: 16px; 
-            cursor: pointer; 
-            margin-bottom: 10px; 
-        }
+        button { width: 100%; padding: 15px; background: #5b41ff; color: white; border: none; border-radius: 8px; font-weight: bold; font-size: 16px; cursor: pointer; margin-bottom: 10px; transition: 0.2s; }
         button:active { transform: scale(0.98); }
+        
+        .message-box { margin-top: 15px; padding: 12px; border-radius: 8px; text-align: center; font-size: 14px; font-weight: 500; display: none; opacity: 0; transform: translateY(-10px); transition: all 0.3s ease; }
+        .message-box.show { display: block; opacity: 1; transform: translateY(0); }
+        .message-box.error { background: rgba(246, 70, 93, 0.1); color: #f6465d; border: 1px solid #f6465d; }
+        .message-box.success { background: rgba(14, 203, 129, 0.1); color: #0ecb81; border: 1px solid #0ecb81; }
+
         .link { text-align: center; font-size: 14px; color: #848e9c; margin-top: 15px; }
         .link a { color: #5b41ff; text-decoration: none; font-weight: bold; }
     </style>
@@ -64,7 +30,8 @@
     <input type="text" id="fullName" placeholder="Full Name">
     <input type="email" id="email" placeholder="Email">
     <input type="password" id="password" placeholder="Password (min 6 chars)">
-    <button onclick="signupUser()">Create Account</button>
+    <button onclick="signupUser()" id="signup-btn">Create Account</button>
+    <div id="signup-message" class="message-box"></div>
     <div class="link">Already have an account? <a href="login.html">Login</a></div>
 </div>
 
@@ -83,13 +50,25 @@
     const auth = getAuth(app);
     const db = getFirestore(app);
 
+    function showMessage(text, type) {
+        const msgBox = document.getElementById('signup-message');
+        msgBox.innerText = text;
+        msgBox.className = `message-box show ${type}`;
+    }
+
     window.signupUser = async function() {
         const fullName = document.getElementById('fullName').value;
         const email = document.getElementById('email').value;
         const password = document.getElementById('password').value;
+        const btn = document.getElementById('signup-btn');
+        const msgBox = document.getElementById('signup-message');
 
-        if(!fullName || !email || !password) return alert("Please fill in all fields.");
-        if(password.length < 6) return alert("Password must be at least 6 characters.");
+        msgBox.className = 'message-box';
+        if(!fullName || !email || !password) return showMessage("Please fill in all fields.", "error");
+        if(password.length < 6) return showMessage("Password must be at least 6 characters.", "error");
+
+        btn.innerText = "Creating Account...";
+        btn.disabled = true;
 
         try {
             const userCredential = await createUserWithEmailAndPassword(auth, email, password);
@@ -101,16 +80,19 @@
             });
 
             await setDoc(doc(db, "wallets", walletId), {
-                ownerUid: user.uid,
-                balances: { BTC: 0.001 }, // Starting balance
-                createdAt: new Date()
+                ownerUid: user.uid, balances: { BTC: 0.001 }, createdAt: new Date()
             });
 
-            alert("Account created successfully! Your Wallet ID is: " + walletId);
-            window.location.href = "dashboard.html"; // Fixed Redirect
+            showMessage("Account created! Redirecting...", "success");
+            setTimeout(() => { window.location.href = "dashboard.html"; }, 1500);
 
         } catch (error) {
-            alert("Signup Failed: " + error.message);
+            if (error.code === 'auth/email-already-in-use') {
+                showMessage("This email is already registered.", "error");
+            } else {
+                showMessage(error.message, "error");
+            }
+            btn.innerText = "Create Account"; btn.disabled = false;
         }
     }
 </script>
