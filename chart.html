@@ -73,7 +73,6 @@
 
 <div class="header">
     <div class="header-left">
-        <!-- Fixed back button to go to trade.html -->
         <div class="back-btn" onclick="window.location.href='trade.html'"><i class="fa-solid fa-chevron-left"></i></div>
         <span id="coin-symbol">BTC</span>
     </div>
@@ -163,13 +162,16 @@
 
     const urlParams = new URLSearchParams(window.location.search);
     const symbol = urlParams.get('symbol') || 'BTC';
-    const basePrice = parseFloat(urlParams.get('price')) || 79564;
+    
+    // Default fallback price if DB fails
+    let basePrice = parseFloat(urlParams.get('price')) || 79564; 
 
     let currentUserId = null;
     let currentWalletId = null;
     let userCoinBalance = 0;
     let selectedDuration = { ms: 300000, label: '5m', mult: 2 };
     let pendingTrade = null;
+    let chartInitialized = false; // Flag to ensure chart only draws once we have the price
 
     window.showToast = function(message, isSuccess = false) {
         const toast = document.getElementById('toast');
@@ -179,8 +181,7 @@
     }
 
     document.getElementById('coin-symbol').innerText = symbol;
-    document.getElementById('current-price').innerText = '$' + basePrice.toLocaleString(undefined, {minimumFractionDigits: 2});
-
+    
     const chartContainer = document.getElementById('chart-container');
     const chart = LightweightCharts.createChart(chartContainer, {
         width: chartContainer.clientWidth, height: 320,
@@ -196,8 +197,8 @@
 
     window.addEventListener('resize', () => chart.applyOptions({ width: chartContainer.clientWidth }));
 
-    function generateChartData(timeframe) {
-        let data = []; let currentPrice = basePrice; let time = Math.floor(Date.now() / 1000);
+    function generateChartData(timeframe, startPrice) {
+        let data = []; let currentPrice = startPrice; let time = Math.floor(Date.now() / 1000);
         let points = 24; let interval = 3600;
         if (timeframe === '1H') { points = 60; interval = 60; } 
         else if (timeframe === '1D') { points = 24; interval = 3600; } 
@@ -220,20 +221,36 @@
     window.changeTimeframe = function(timeframe, btnElement) {
         document.querySelectorAll('.timeframe').forEach(el => el.classList.remove('active'));
         btnElement.classList.add('active');
-        const newData = generateChartData(timeframe);
+        const newData = generateChartData(timeframe, basePrice); // uses the global basePrice
         candlestickSeries.setData(newData);
         chart.timeScale().fitContent();
+        
         const lastCandle = newData[newData.length - 1];
         document.getElementById('current-price').innerText = '$' + lastCandle.close.toLocaleString(undefined, {minimumFractionDigits: 2});
     }
-
-    setTimeout(() => { changeTimeframe('1D', document.querySelector('.timeframe.active')); }, 100);
 
     onAuthStateChanged(auth, async (user) => {
         if (user) {
             currentUserId = user.uid;
             const userDoc = await getDoc(doc(db, "users", currentUserId));
             if (userDoc.exists()) {
+                if (userDoc.data().status === 'frozen' || userDoc.data().status === 'blocked') {
+                    showToast("Your account is restricted.");
+                    setTimeout(() => window.location.href = 'dashboard.html', 2000);
+                    return;
+                }
+
+                // --- BUG FIX: FETCH PRICE FROM ADMIN PANEL ---
+                try {
+                    const coinDoc = await getDoc(doc(db, "coins", symbol));
+                    if (coinDoc.exists()) {
+                        basePrice = parseFloat(coinDoc.data().price);
+                    }
+                } catch(e) { console.log("Using URL price fallback"); }
+                
+                // Now that we have the DB price, initialize the chart
+                changeTimeframe('1D', document.querySelector('.timeframe.active'));
+
                 currentWalletId = userDoc.data().activeWalletId;
                 const walletDoc = await getDoc(doc(db, "wallets", currentWalletId));
                 if (walletDoc.exists()) {
@@ -266,9 +283,8 @@
             const amt = parseFloat(document.getElementById('trade-amount').value);
             if(isNaN(amt) || amt <= 0) return showToast("Please enter a valid amount.");
             if(amt > userCoinBalance) return showToast(`Insufficient ${symbol} balance!`);
-            const priceText = document.getElementById('current-price').innerText;
-            const currentPrice = parseFloat(priceText.replace(/[^0-9.]/g, ''));
-            if (isNaN(currentPrice)) return showToast("Error reading market price.");
+            
+            const currentPrice = basePrice; // Use DB price
             const stakeValue = amt * currentPrice;
             pendingTrade = { asset: symbol, direction: direction, amount: amt, entryPrice: currentPrice, stakeValue: stakeValue, duration: selectedDuration };
             
@@ -294,13 +310,21 @@
         const btn = document.getElementById('btn-confirm-trade');
         if (btn.disabled) return;
         if (!pendingTrade) return showToast("Trade data lost.");
+        
         const trade = { ...pendingTrade };
         btn.innerText = "Processing..."; btn.disabled = true;
 
         try {
+            const userDocCheck = await getDoc(doc(db, "users", currentUserId));
+            if (userDocCheck.exists()) {
+                const status = userDocCheck.data().status || 'active';
+                if (status === 'frozen' || status === 'blocked') {
+                    throw new Error("Your account is restricted. Action denied.");
+                }
+            }
+
             const expiresAt = new Date(Date.now() + trade.duration.ms);
-            const userDoc = await getDoc(doc(db, "users", currentUserId));
-            let tradesCount = userDoc.data()?.tradesCount || 0;
+            let tradesCount = userDocCheck.data()?.tradesCount || 0;
             const willWin = (tradesCount % 20) < 16; 
             await updateDoc(doc(db, "users", currentUserId), { tradesCount: increment(1) });
 
