@@ -1,6 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { getAuth } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-import { getFirestore, doc, getDoc, updateDoc, collection, query, where, getDocs, increment } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { getFirestore, doc, updateDoc, collection, query, where, getDocs, increment, runTransaction } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyAMucqvSoBlUo5jn5Pu4ClQIGRlInu55mQ", authDomain: "project-app-259f2.firebaseapp.com",
@@ -8,12 +8,20 @@ const firebaseConfig = {
   messagingSenderId: "389607996830", appId: "1:389607996830:web:a9e456c60e4608f1a9ea8f"
 };
 
-const app = initializeApp(firebaseConfig);
+let app;
+try {
+    app = initializeApp(firebaseConfig);
+} catch (e) {
+    app = import("https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js").then(m => m.getApp());
+}
+
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-// --- 1. INJECT THE ANIMATION MODAL HTML & CSS ---
+// --- INJECT THE ANIMATION MODAL HTML & CSS ---
 const injectModal = () => {
+    if (document.getElementById('trade-result-modal')) return;
+
     const style = document.createElement('style');
     style.innerHTML = `
         .tr-modal-overlay { position: fixed; inset: 0; background: rgba(11, 14, 17, 0.95); z-index: 10000; display: none; justify-content: center; align-items: center; flex-direction: column; padding: 20px; font-family: -apple-system, sans-serif;}
@@ -66,12 +74,11 @@ if (document.readyState === 'loading') {
 }
 
 // --- 2. GLOBAL TRADE CHECKER ENGINE ---
+let isChecking = false; // Prevent overlapping intervals
+
 auth.onAuthStateChanged((user) => {
     if (user) {
-        // Check immediately on page load
         checkExpiredTrades(user.uid);
-        
-        // Then check every 5 seconds while on this page
         setInterval(() => {
             checkExpiredTrades(user.uid);
         }, 5000);
@@ -79,51 +86,54 @@ auth.onAuthStateChanged((user) => {
 });
 
 async function checkExpiredTrades(uid) {
+    if (isChecking) return; // If it's already running, skip this cycle
+    isChecking = true;
+
     try {
         const now = new Date();
-        
-        // Find open trades for this user that have expired
-        const q = query(
-            collection(db, "trades"), 
-            where("uid", "==", uid), 
-            where("status", "==", "open")
-        );
-        
+        const q = query(collection(db, "trades"), where("uid", "==", uid), where("status", "==", "open"));
         const snapshot = await getDocs(q);
         
-        snapshot.forEach(async (tradeDoc) => {
+        for (const tradeDoc of snapshot.docs) {
             const t = tradeDoc.data();
-            const expiresAt = t.expiresAt.toDate();
-            
-            if (now >= expiresAt) {
-                // This trade is expired! Resolve it.
-                const walletRef = doc(db, "wallets", t.walletId);
+            if (now >= t.expiresAt.toDate()) {
                 
-                if (t.willWin) {
-                    // User WINS
-                    const totalReturn = t.amount * t.payoutMultiplier;
-                    await updateDoc(walletRef, { [`balances.${t.asset}`]: increment(totalReturn) });
-                    await updateDoc(tradeDoc.ref, { status: 'won', resolvedAt: new Date() });
+                // THE FIX: Use a Transaction to guarantee we only pay out ONCE
+                await runTransaction(db, async (transaction) => {
+                    const freshTradeDoc = await transaction.get(tradeDoc.ref);
                     
-                    showResultModal('win', t.asset, totalReturn);
-                } else {
-                    // User LOSES
-                    await updateDoc(tradeDoc.ref, { status: 'lost', resolvedAt: new Date() });
+                    // Double check if it's still open inside the transaction lock
+                    if (!freshTradeDoc.exists() || freshTradeDoc.data().status !== 'open') {
+                        return; // Exit, someone else already processed this
+                    }
+
+                    const freshData = freshTradeDoc.data();
+                    const walletRef = doc(db, "wallets", freshData.walletId);
                     
-                    showResultModal('loss', t.asset, t.amount);
-                }
+                    if (freshData.willWin) {
+                        const totalReturn = freshData.amount * freshData.payoutMultiplier;
+                        transaction.update(walletRef, { [`balances.${freshData.asset}`]: increment(totalReturn) });
+                        transaction.update(tradeDoc.ref, { status: 'won', resolvedAt: new Date() });
+                        showResultModal('win', freshData.asset, totalReturn);
+                    } else {
+                        // Note: The money was already deducted when the trade was placed. 
+                        // We just mark it as lost so they don't get it back.
+                        transaction.update(tradeDoc.ref, { status: 'lost', resolvedAt: new Date() });
+                        showResultModal('loss', freshData.asset, freshData.amount);
+                    }
+                });
             }
-        });
+        }
     } catch (error) {
         console.error("Trade check error:", error);
+    } finally {
+        isChecking = false; // Release the lock
     }
 }
 
-// --- 3. SHOW THE ANIMATION ---
 let isModalShowing = false;
-
 function showResultModal(type, asset, amount) {
-    if (isModalShowing) return; // Prevent overlapping modals
+    if (isModalShowing) return;
     isModalShowing = true;
 
     const modal = document.getElementById('trade-result-modal');
@@ -133,25 +143,19 @@ function showResultModal(type, asset, amount) {
     const desc = document.getElementById('tr-desc');
     const btn = document.getElementById('tr-btn');
 
-    // Reset classes
     circle.className = 'tr-circle';
     svg.className = 'tr-svg';
     btn.className = 'tr-btn';
 
     if (type === 'win') {
-        circle.classList.add('win');
-        svg.classList.add('win');
-        btn.classList.add('win');
+        circle.classList.add('win'); svg.classList.add('win'); btn.classList.add('win');
         title.innerText = "Trade Won! 🎉";
         title.style.color = "var(--green)";
         desc.innerHTML = `Congratulations!<br>You won <strong style="color: #0ecb81;">${amount.toFixed(4)} ${asset}</strong>`;
     } else {
-        circle.classList.add('loss');
-        svg.classList.add('loss');
-        btn.classList.add('loss');
+        circle.classList.add('loss'); svg.classList.add('loss'); btn.classList.add('loss');
         title.innerText = "Trade Lost 📉";
         title.style.color = "var(--red)";
-        // Change the checkmark path to an X
         document.getElementById('tr-path').setAttribute('d', 'M16 16 L36 36 M36 16 L16 36');
         desc.innerHTML = `Better luck next time.<br>You lost <strong style="color: #f6465d;">${amount} ${asset}</strong>`;
     }
