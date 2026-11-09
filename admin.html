@@ -7,21 +7,13 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root { 
-            --bg: #0b0e11; 
-            --sidebar: #121418;
-            --card: #181a20; 
-            --text: #ffffff; 
-            --muted: #848e9c; 
-            --green: #0ecb81; 
-            --purple: #5b41ff; 
-            --red: #f6465d; 
-            --yellow: #f3ba2f;
-            --border: #2b3139;
+            --bg: #0b0e11; --sidebar: #121418; --card: #181a20; --text: #ffffff; 
+            --muted: #848e9c; --green: #0ecb81; --purple: #5b41ff; --red: #f6465d; 
+            --yellow: #f3ba2f; --border: #2b3139;
         }
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
         body { background-color: var(--bg); color: var(--text); display: flex; min-height: 100vh; overflow-x: hidden; }
         
-        /* Animations */
         .fade-in { animation: fadeIn 0.4s ease-out forwards; opacity: 0; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         
@@ -80,7 +72,6 @@
         .badge.frozen { background: rgba(243, 186, 47, 0.1); color: var(--yellow); border: 1px solid var(--yellow); }
         .badge.blocked { background: rgba(246, 70, 93, 0.1); color: var(--red); border: 1px solid var(--red); }
 
-        /* Action Dropdown */
         .action-select { padding: 8px; border-radius: 6px; font-size: 12px; background: var(--bg); border: 1px solid var(--border); color: white; cursor: pointer; }
 
         .code-display { background: rgba(91, 65, 255, 0.1); border: 1px dashed var(--purple); padding: 15px; border-radius: 8px; text-align: center; font-family: monospace; font-size: 20px; font-weight: bold; color: var(--green); margin-top: 15px; display: none; }
@@ -196,6 +187,24 @@
                         <button class="btn btn-success" style="flex: 1;" onclick="modifyBalance('add')"><i class="fa-solid fa-plus"></i> Add</button>
                         <button class="btn btn-danger" style="flex: 1;" onclick="modifyBalance('remove')"><i class="fa-solid fa-minus"></i> Remove</button>
                     </div>
+                </div>
+
+                <!-- Update Coin Prices -->
+                <div class="card">
+                    <h3><i class="fa-solid fa-chart-line" style="color: var(--green);"></i> Update Coin Price</h3>
+                    <div class="form-group">
+                        <label>Select Coin</label>
+                        <select id="price-coin-symbol">
+                            <option value="BTC">BTC</option><option value="ETH">ETH</option><option value="SOL">SOL</option>
+                            <option value="USDT">USDT</option><option value="XRP">XRP</option><option value="BNB">BNB</option>
+                            <option value="ADA">ADA</option><option value="DOGE">DOGE</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>New Price (USD)</label>
+                        <input type="number" id="price-coin-value" placeholder="e.g. 80000" step="any">
+                    </div>
+                    <button class="btn btn-primary" onclick="updateCoinPrice()">Update Global Price</button>
                 </div>
 
                 <!-- Withdrawal Codes -->
@@ -371,6 +380,26 @@
             document.getElementById('amount-input').value = '';
             loadUsers(); 
         } catch (error) { showToast("Error: " + error.message, "error"); }
+    }
+
+    // --- UPDATED: Uses Dropdown for Symbol ---
+    window.updateCoinPrice = async function() {
+        const symbol = document.getElementById('price-coin-symbol').value;
+        const price = parseFloat(document.getElementById('price-coin-value').value);
+
+        if (isNaN(price) || price <= 0) return showToast("Enter a valid price.", "error");
+
+        try {
+            await setDoc(doc(db, "coins", symbol), {
+                price: price,
+                updatedAt: new Date()
+            }, { merge: true });
+
+            showToast(`Price of ${symbol} updated to $${price}!`, 'success');
+            document.getElementById('price-coin-value').value = '';
+        } catch (error) {
+            showToast("Error: " + error.message, "error");
+        }
     }
 
     window.generateCode = async function() {
