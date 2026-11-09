@@ -146,7 +146,8 @@
         return styles[symbol] || { bg: '#2b3139', letter: symbol.charAt(0) };
     };
 
-    const tradeData = [
+    // Default hardcoded data (will be updated by DB)
+    let tradeData = [
         { symbol: 'BTC', name: 'Bitcoin', price: 79564, change: -1.06, lev: 40, vol: '2.20B' },
         { symbol: 'SOL', name: 'Solana', price: 145.2, change: 4.5, lev: 20, vol: '450M' },
         { symbol: 'USDT', name: 'Tether', price: 1.00, change: 0.01, lev: 100, vol: '5.20B' },
@@ -155,62 +156,33 @@
         { symbol: 'DOGE', name: 'Dogecoin', price: 0.12, change: 5.40, lev: 50, vol: '300M' }
     ];
 
-    const listContainer = document.getElementById('trade-list');
-    listContainer.innerHTML = tradeData.map(coin => {
-        const isUp = coin.change >= 0;
-        const colorClass = isUp ? 'color: var(--green);' : 'color: var(--red);';
-        const style = getCoinStyle(coin.symbol);
-        return `
-            <div class="coin-item" onclick="window.location.href='chart.html?symbol=${coin.symbol}&price=${coin.price}'">
-                <div class="coin-info">
-                    <div class="coin-icon" style="background: ${style.bg};">${style.letter}</div>
-                    <div class="coin-details">
-                        <h4>${coin.symbol} <span class="lev-badge">${coin.lev}x</span></h4>
-                        <p>$${coin.vol} Vol</p>
-                    </div>
-                </div>
-                <div class="coin-price">
-                    <h4>$${coin.price.toLocaleString()}</h4>
-                    <p style="${colorClass}">${isUp ? '+' : ''}${coin.change}%</p>
-                </div>
-            </div>
-        `;
-    }).join('');
-
-    const pickerGrid = document.getElementById('picker-grid');
-    pickerGrid.innerHTML = tradeData.map(coin => {
-        const style = getCoinStyle(coin.symbol);
-        return `
-            <div class="picker-item" onclick="goToChart('${coin.symbol}', ${coin.price})">
-                <div class="coin-icon" style="background: ${style.bg}; width: 24px; height: 24px; font-size: 12px;">${style.letter}</div>
-                <span style="font-weight: bold;">${coin.symbol}</span>
-            </div>
-        `;
-    }).join('');
-
-    window.openPickerModal = function(type) {
-        document.getElementById('picker-title').innerText = `Select Asset to ${type}`;
-        document.getElementById('picker-modal').style.display = 'flex';
-    }
-
-    window.goToChart = function(symbol, price) {
-        window.location.href = `chart.html?symbol=${symbol}&price=${price}`;
-    }
-
     onAuthStateChanged(auth, async (user) => {
         if (user) {
             const userDoc = await getDoc(doc(db, "users", user.uid));
             if (userDoc.exists()) {
+                
+                // 1. Fetch live prices from Admin Panel
+                const coinsSnapshot = await getDocs(collection(db, "coins"));
+                const dbPrices = {};
+                coinsSnapshot.forEach(d => dbPrices[d.id] = d.data().price);
+
+                // 2. Update local tradeData with latest prices
+                tradeData.forEach(coin => {
+                    if (dbPrices[coin.symbol]) {
+                        coin.price = dbPrices[coin.symbol];
+                    }
+                });
+
+                // 3. Render the lists now that we have the correct prices
+                renderLists();
+
+                // 4. Update Balance
                 const walletId = userDoc.data().activeWalletId;
                 const walletDoc = await getDoc(doc(db, "wallets", walletId));
                 if (walletDoc.exists()) {
                     const balances = walletDoc.data().balances || {};
-                    const coinsSnapshot = await getDocs(collection(db, "coins"));
-                    const dbPrices = {};
-                    coinsSnapshot.forEach(d => dbPrices[d.id] = d.data().price);
-
                     const fallbackPrices = { 'BTC': 80000, 'SOL': 145.20, 'USDT': 1.00, 'XRP': 0.52, 'ETH': 2300, 'BNB': 580.10, 'ADA': 0.45, 'DOGE': 0.12, 'AVAX': 35.10, 'LINK': 14.50 };
-
+                    
                     let totalUSD = 0;
                     for (const [coin, amount] of Object.entries(balances)) {
                         const price = dbPrices[coin] || fallbackPrices[coin] || 0;
@@ -221,6 +193,50 @@
             }
         }
     });
+
+    function renderLists() {
+        const listContainer = document.getElementById('trade-list');
+        listContainer.innerHTML = tradeData.map(coin => {
+            const isUp = coin.change >= 0;
+            const colorClass = isUp ? 'color: var(--green);' : 'color: var(--red);';
+            const style = getCoinStyle(coin.symbol);
+            return `
+                <div class="coin-item" onclick="window.location.href='chart.html?symbol=${coin.symbol}&price=${coin.price}'">
+                    <div class="coin-info">
+                        <div class="coin-icon" style="background: ${style.bg};">${style.letter}</div>
+                        <div class="coin-details">
+                            <h4>${coin.symbol} <span class="lev-badge">${coin.lev}x</span></h4>
+                            <p>$${coin.vol} Vol</p>
+                        </div>
+                    </div>
+                    <div class="coin-price">
+                        <h4>$${coin.price.toLocaleString()}</h4>
+                        <p style="${colorClass}">${isUp ? '+' : ''}${coin.change}%</p>
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        const pickerGrid = document.getElementById('picker-grid');
+        pickerGrid.innerHTML = tradeData.map(coin => {
+            const style = getCoinStyle(coin.symbol);
+            return `
+                <div class="picker-item" onclick="goToChart('${coin.symbol}', ${coin.price})">
+                    <div class="coin-icon" style="background: ${style.bg}; width: 24px; height: 24px; font-size: 12px;">${style.letter}</div>
+                    <span style="font-weight: bold;">${coin.symbol}</span>
+                </div>
+            `;
+        }).join('');
+    }
+
+    window.openPickerModal = function(type) {
+        document.getElementById('picker-title').innerText = `Select Asset to ${type}`;
+        document.getElementById('picker-modal').style.display = 'flex';
+    }
+
+    window.goToChart = function(symbol, price) {
+        window.location.href = `chart.html?symbol=${symbol}&price=${price}`;
+    }
 </script>
 <script type="module" src="trade-resolver.js"></script>
 </body>
