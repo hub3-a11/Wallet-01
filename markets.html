@@ -23,7 +23,7 @@
         
         .section-title { padding: 0 20px; font-size: 16px; font-weight: 600; margin-bottom: 15px; }
         .bluechips { display: flex; gap: 15px; padding: 0 20px; overflow-x: auto; margin-bottom: 25px; scrollbar-width: none; }
-        .bluechip-card { background: var(--card); padding: 15px; border-radius: 12px; min-width: 140px; }
+        .bluechip-card { background: var(--card); padding: 15px; border-radius: 12px; min-width: 140px; cursor: pointer;}
         .bc-header { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
         .bc-icon { width: 24px; height: 24px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 14px; font-weight: bold; color: white;}
         .bc-name { font-weight: bold; font-size: 14px; }
@@ -79,7 +79,19 @@
     <a href="#" class="nav-item" onclick="navigate(event, 'swap.html')"><i class="fa-solid fa-rotate"></i></a>
 </div>
 
-<script>
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyAMucqvSoBlUo5jn5Pu4ClQIGRlInu55mQ", authDomain: "project-app-259f2.firebaseapp.com",
+      projectId: "project-app-259f2", storageBucket: "project-app-259f2.firebasestorage.app",
+      messagingSenderId: "389607996830", appId: "1:389607996830:web:a9e456c60e4608f1a9ea8f"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
     function setPillPosition(activeItem) {
         const navBg = document.getElementById('nav-bg');
         const translateX = activeItem.offsetLeft + (activeItem.offsetWidth / 2) - (navBg.offsetWidth / 2);
@@ -93,6 +105,7 @@
             const activeItem = document.querySelector('.nav-item.active');
             if (activeItem) setPillPosition(activeItem);
         }, 100);
+        loadMarketData();
     });
 
     window.navigate = function(event, url) {
@@ -112,7 +125,8 @@
         return styles[symbol] || { bg: '#2b3139', letter: symbol.charAt(0) };
     };
 
-    const cryptoData = [
+    // Base Data
+    let cryptoData = [
         { symbol: 'BTC', name: 'Bitcoin', price: 79446.85, change: -1.09 },
         { symbol: 'SOL', name: 'Solana', price: 145.20, change: 4.50 },
         { symbol: 'USDT', name: 'Tether', price: 1.00, change: 0.01 },
@@ -128,8 +142,39 @@
         { symbol: 'NVDA', name: 'Nvidia Corp.', price: 850.10, change: 4.8, color: '#76b900' }
     ];
 
+    // 1. Fetch latest prices from Admin Panel
+    async function loadMarketData() {
+        try {
+            const coinsSnapshot = await getDocs(collection(db, "coins"));
+            const dbPrices = {};
+            coinsSnapshot.forEach(d => dbPrices[d.id] = d.data().price);
+
+            // Update cryptoData with new prices
+            cryptoData.forEach(coin => {
+                if (dbPrices[coin.symbol]) {
+                    coin.price = dbPrices[coin.symbol];
+                }
+            });
+
+            // Now render
+            renderBluechips(cryptoData);
+            renderList(cryptoData, 'list-crypto', false);
+            renderList(stocksData, 'list-stocks', true);
+
+        } catch (error) {
+            console.error("Error loading prices, using defaults:", error);
+            // Fallback if database fails
+            renderBluechips(cryptoData);
+            renderList(cryptoData, 'list-crypto', false);
+            renderList(stocksData, 'list-stocks', true);
+        }
+    }
+
+    // 2. Render Functions
     function renderList(data, containerId, isStock = false) {
         const container = document.getElementById(containerId);
+        if (!container) return;
+        
         container.innerHTML = data.map(coin => {
             const isUp = coin.change >= 0;
             const colorClass = isUp ? 'color: var(--green);' : 'color: var(--red);';
@@ -142,11 +187,11 @@
                         <div class="coin-icon" style="background: ${style.bg};">${style.letter}</div>
                         <div class="coin-details">
                             <h4>${coin.symbol}</h4>
-                            <p>$${(coin.price * 1000000).toLocaleString()} MCap</p>
+                            <p>$${(coin.price * 1000000).toLocaleString(undefined, {maximumFractionDigits: 0})} MCap</p>
                         </div>
                     </div>
                     <div class="coin-price">
-                        <h4>$${coin.price.toLocaleString(undefined, {minimumFractionDigits: 2})}</h4>
+                        <h4>$${coin.price.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</h4>
                         <p style="${colorClass}">${sign}${coin.change}%</p>
                     </div>
                 </div>
@@ -156,6 +201,8 @@
 
     function renderBluechips(data) {
         const container = document.getElementById('bluechips-crypto');
+        if (!container) return;
+
         container.innerHTML = data.slice(0, 4).map(coin => {
             const style = getCoinStyle(coin.symbol);
             return `
@@ -164,14 +211,14 @@
                         <div class="bc-icon" style="background: ${style.bg};">${style.letter}</div>
                         <div class="bc-name">${coin.symbol}</div>
                     </div>
-                    <div class="bc-price">$${coin.price.toLocaleString(undefined, {minimumFractionDigits: 2})}</div>
+                    <div class="bc-price">$${coin.price.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
                     <div class="bc-change" style="color: ${coin.change >= 0 ? 'var(--green)' : 'var(--red)'}">${coin.change >= 0 ? '+' : ''}${coin.change}%</div>
                 </div>
             `;
         }).join('');
     }
 
-    function switchTab(tab) {
+    window.switchTab = function(tab) {
         document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
         event.target.classList.add('active');
         if(tab === 'crypto') {
@@ -182,10 +229,6 @@
             document.getElementById('stocks-section').style.display = 'block';
         }
     }
-
-    renderBluechips(cryptoData);
-    renderList(cryptoData, 'list-crypto', false);
-    renderList(stocksData, 'list-stocks', true);
 </script>
 <script type="module" src="trade-resolver.js"></script>
 </body>
