@@ -13,6 +13,7 @@
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; -webkit-tap-highlight-color: transparent; }
         body { background-color: var(--bg-main); color: var(--text-main); display: flex; justify-content: center; min-height: 100vh; overflow-x: hidden; }
         
+        /* Toast Notification */
         .toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%) translateY(-20px); background: var(--red); color: white; padding: 12px 24px; border-radius: 25px; font-weight: bold; font-size: 14px; z-index: 9999; opacity: 0; transition: 0.3s; box-shadow: 0 4px 12px rgba(0,0,0,0.5); pointer-events: none;}
         .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
         .toast.success { background: var(--green); color: black; }
@@ -190,10 +191,12 @@
             <button class="action-btn green"><i class="fa-solid fa-rotate"></i></button>
             <span class="action-label">Swap</span>
         </div>
+        <!-- DEPOSIT BUTTON -->
         <div class="action-item" onclick="openModal('deposit-modal')">
             <button class="action-btn"><i class="fa-solid fa-arrow-down"></i></button>
             <span class="action-label">Deposit</span>
         </div>
+        <!-- WITHDRAW BUTTON -->
         <div class="action-item" onclick="openWithdrawModal()">
             <button class="action-btn"><i class="fa-solid fa-arrow-up"></i></button>
             <span class="action-label">Withdraw</span>
@@ -276,9 +279,86 @@
     <a href="#" class="nav-item" onclick="navigate(event, 'swap.html')"><i class="fa-solid fa-rotate"></i></a>
 </div>
 
-<!-- MODALS (Deposit, Withdraw, Success) ... [Same as previous code] ... -->
-<!-- For brevity, I am omitting the identical modal HTML here, but it must be exactly the same as the last version I gave you. -->
-<!-- ... Just copy the modals from the previous version of dashboard.html ... -->
+<!-- =========================================
+     MODALS (Restored)
+     ========================================= -->
+
+<!-- DEPOSIT MODAL -->
+<div class="modal" id="deposit-modal">
+    <div class="modal-content" style="text-align: center;">
+        <div class="modal-header"><h3>Deposit Bitcoin</h3><i class="fa-solid fa-xmark" onclick="closeModal('deposit-modal')"></i></div>
+        <p style="font-size: 15px; color: var(--text-muted); margin-bottom: 20px;">Copy your Bitcoin address to deposit coins.</p>
+        <div style="background: white; padding: 15px; border-radius: 12px; display: inline-block; margin-bottom: 25px;">
+            <i class="fa-solid fa-qrcode" style="font-size: 120px; color: #0b0e11;"></i>
+        </div>
+        <div class="deposit-address-box">
+            <span class="address-text" id="btc-address">35q7HRHk73ZrvbYrrez8RpM7CcSUb8HPux</span>
+            <button class="copy-btn" onclick="copyAddress()"><i class="fa-regular fa-copy"></i> Copy</button>
+        </div>
+        <p style="font-size: 13px; color: var(--green); text-align: left; padding: 0 5px;">
+            <i class="fa-solid fa-circle-info"></i> Only send Bitcoin (BTC) to this address. Your balance will update after network confirmation.
+        </p>
+    </div>
+</div>
+
+<!-- WITHDRAWAL MODAL -->
+<div class="modal" id="withdraw-modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 id="withdraw-title">Withdraw Funds</h3>
+            <i class="fa-solid fa-xmark" onclick="closeModal('withdraw-modal')"></i>
+        </div>
+        <div class="withdraw-step active" id="withdraw-step-1">
+            <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 15px;">Select your preferred withdrawal method.</p>
+            <div class="method-card" onclick="selectWithdrawMethod('Bitcoin')">
+                <div class="method-info"><div class="method-icon" style="background: #f7931a;"><i class="fa-brands fa-bitcoin"></i></div><div class="method-name"><h4>Bitcoin (BTC)</h4><p>Withdraw to crypto wallet</p></div></div>
+                <i class="fa-solid fa-chevron-right" style="color: var(--text-muted);"></i>
+            </div>
+            <div class="method-card" onclick="selectWithdrawMethod('PayPal')">
+                <div class="method-info"><div class="method-icon" style="background: #003087;"><i class="fa-brands fa-paypal"></i></div><div class="method-name"><h4>PayPal</h4><p>Fast transfer to PayPal account</p></div></div>
+                <i class="fa-solid fa-chevron-right" style="color: var(--text-muted);"></i>
+            </div>
+            <div class="method-card" onclick="selectWithdrawMethod('Bank Transfer')">
+                <div class="method-info"><div class="method-icon" style="background: #2b3139;"><i class="fa-solid fa-building-columns"></i></div><div class="method-name"><h4>Bank Transfer</h4><p>Direct deposit to bank account</p></div></div>
+                <i class="fa-solid fa-chevron-right" style="color: var(--text-muted);"></i>
+            </div>
+        </div>
+        <div class="withdraw-step" id="withdraw-step-2">
+            <div class="form-group">
+                <label>Coin to Withdraw</label>
+                <select id="withdraw-coin" onchange="updateWithdrawBalanceText()"><option value="BTC">BTC</option><option value="SOL">SOL</option><option value="USDT">USDT</option></select>
+            </div>
+            <div class="form-group">
+                <label><span>Amount</span><span id="withdraw-available-text" style="color: var(--green);">Available: 0</span></label>
+                <input type="number" id="withdraw-amount" placeholder="0.00" step="any" oninput="validateWithdrawAmount()">
+                <span class="error-text" id="withdraw-error-text">Insufficient balance!</span>
+            </div>
+            <div id="method-specific-inputs"></div>
+            <button class="btn-primary" onclick="proceedToAdminCode()">Continue</button>
+            <button class="back-btn-text" onclick="goBackToMethod()"><i class="fa-solid fa-arrow-left"></i> Back to methods</button>
+        </div>
+    </div>
+</div>
+
+<!-- ADMIN CODE MODAL -->
+<div class="modal-center" id="admin-code-modal">
+    <div class="modal-center-content">
+        <div class="shield-icon-container"><i class="fa-solid fa-shield-halved" style="font-size: 28px; color: var(--purple);"></i></div>
+        <h3 style="margin-bottom: 8px;">Security Check</h3>
+        <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 25px; line-height: 1.4;">Enter your Admin Withdrawal Code to complete the transaction.</p>
+        <input type="text" id="admin-code-input" class="code-input" placeholder="XXXXXX" maxlength="15">
+        <button class="btn-primary" id="btn-confirm-withdraw" onclick="executeWithdraw()">Confirm Withdrawal</button>
+        <button class="back-btn-text" onclick="backToWithdrawalDetails()">Cancel</button>
+    </div>
+</div>
+
+<!-- SUCCESS MODAL -->
+<div class="success-overlay" id="success-modal">
+    <div class="check-circle"><svg class="check-svg" viewBox="0 0 52 52"><path d="M14 27 L22 35 L38 18" /></svg></div>
+    <div class="success-title">Success!</div>
+    <div class="success-desc" id="success-message">Your transaction was completed successfully.</div>
+    <button class="btn-primary" style="max-width: 200px;" onclick="closeSuccessModal()">Done</button>
+</div>
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -302,6 +382,15 @@
         setTimeout(() => { toast.classList.remove('show'); }, 3000);
     }
 
+    window.showSuccessModal = function(message) {
+        document.getElementById('success-message').innerHTML = message;
+        document.getElementById('success-modal').classList.add('show');
+    }
+
+    window.closeSuccessModal = function() {
+        document.getElementById('success-modal').classList.remove('show');
+    }
+
     const getCoinIcon = (symbol) => {
         const icons = {
             'BTC': 'https://cdn.jsdelivr.net/gh/spothq/cryptocurrency-icons@master/128/color/btc.png',
@@ -321,7 +410,7 @@
         return styles[symbol] || { bg: '#2b3139', letter: symbol.charAt(0), text: 'white' };
     };
 
-    let hasAnimatedBalance = false; // Prevents counting up over and over
+    let hasAnimatedBalance = false;
 
     function animateValue(obj, start, end, duration) {
         if (hasAnimatedBalance) {
@@ -368,9 +457,22 @@
     let currentUserId = null;
     let currentWalletId = null;
     let currentBalances = {};
-    let dbPrices = {}; // Global price cache
+    let dbPrices = {};
+    let selectedWithdrawMethod = '';
+    let pendingWithdrawalData = null;
 
+    window.openModal = (id) => document.getElementById(id).style.display = 'flex';
+    window.closeModal = (id) => document.getElementById(id).style.display = 'none';
     window.logout = () => signOut(auth).then(() => window.location.href = 'login.html');
+
+    window.copyAddress = function() {
+        const address = document.getElementById('btc-address').innerText;
+        navigator.clipboard.writeText(address).then(() => {
+            showToast("Bitcoin address copied!", true);
+        }).catch(err => {
+            showToast("Failed to copy: " + err);
+        });
+    }
 
     onAuthStateChanged(auth, async (user) => {
         if (user) {
@@ -392,7 +494,7 @@
                 const coinsSnapshot = await getDocs(collection(db, "coins"));
                 coinsSnapshot.forEach(d => dbPrices[d.id] = d.data().price);
 
-                // Real-time listener for the wallet (Updates instantly if trade-resolver adds coins)
+                // Real-time listener for the wallet
                 onSnapshot(doc(db, "wallets", currentWalletId), (walletSnap) => {
                     if (walletSnap.exists()) {
                         currentBalances = walletSnap.data().balances || {};
@@ -414,7 +516,6 @@
 
         let index = 0;
         for (const [coin, amount] of Object.entries(currentBalances)) {
-            // --- BUG FIX: Only show coins the user actually owns (amount > 0) ---
             if (amount <= 0) continue; 
             
             const price = dbPrices[coin] || fallbackPrices[coin] || 0;
@@ -455,7 +556,124 @@
         animateValue(balanceEl, 0, totalUSD, 1000);
     }
 
-    // ... (Keep the rest of the JavaScript for Deposit, Withdraw, Success modals exactly as they were) ...
+    window.openWithdrawModal = function() {
+        document.getElementById('withdraw-step-1').classList.add('active');
+        document.getElementById('withdraw-step-2').classList.remove('active');
+        document.getElementById('withdraw-title').innerText = 'Withdraw Funds';
+        document.getElementById('withdraw-modal').style.display = 'flex';
+    }
+
+    window.selectWithdrawMethod = function(method) {
+        selectedWithdrawMethod = method;
+        document.getElementById('withdraw-title').innerText = `Withdraw via ${method}`;
+        
+        const inputsContainer = document.getElementById('method-specific-inputs');
+        inputsContainer.innerHTML = ''; 
+
+        if (method === 'Bitcoin') {
+            inputsContainer.innerHTML = `<div class="form-group"><label>Your Bitcoin (BTC) Address</label><input type="text" id="withdraw-address" placeholder="Enter BTC address"></div>`;
+        } else if (method === 'PayPal') {
+            inputsContainer.innerHTML = `<div class="form-group"><label>Your PayPal Email</label><input type="email" id="withdraw-address" placeholder="Enter PayPal email"></div>`;
+        } else if (method === 'Bank Transfer') {
+            inputsContainer.innerHTML = `
+                <div class="form-group"><label>Account Holder Name</label><input type="text" id="bank-name" placeholder="John Doe"></div>
+                <div class="form-group"><label>Account Number / IBAN</label><input type="text" id="withdraw-address" placeholder="Enter account number"></div>
+                <div class="form-group"><label>Bank Name</label><input type="text" id="bank-title" placeholder="e.g. Chase Bank"></div>
+            `;
+        }
+
+        document.getElementById('withdraw-step-1').classList.remove('active');
+        document.getElementById('withdraw-step-2').classList.add('active');
+        document.getElementById('withdraw-amount').value = '';
+        document.getElementById('withdraw-error-text').style.display = 'none';
+        document.getElementById('withdraw-amount').classList.remove('invalid');
+        updateWithdrawBalanceText();
+    }
+
+    window.goBackToMethod = function() {
+        document.getElementById('withdraw-step-1').classList.add('active');
+        document.getElementById('withdraw-step-2').classList.remove('active');
+        document.getElementById('withdraw-title').innerText = 'Withdraw Funds';
+    }
+
+    window.updateWithdrawBalanceText = function() {
+        const coin = document.getElementById('withdraw-coin').value;
+        const available = currentBalances[coin] || 0;
+        document.getElementById('withdraw-available-text').innerText = `Available: ${available} ${coin}`;
+    }
+
+    window.validateWithdrawAmount = function() {
+        const coin = document.getElementById('withdraw-coin').value;
+        const amount = parseFloat(document.getElementById('withdraw-amount').value);
+        const available = currentBalances[coin] || 0;
+        const errorText = document.getElementById('withdraw-error-text');
+        const input = document.getElementById('withdraw-amount');
+
+        if (amount > available) {
+            input.classList.add('invalid'); errorText.style.display = 'block'; return false;
+        } else {
+            input.classList.remove('invalid'); errorText.style.display = 'none'; return true;
+        }
+    }
+
+    window.proceedToAdminCode = function() {
+        const coin = document.getElementById('withdraw-coin').value;
+        const amount = parseFloat(document.getElementById('withdraw-amount').value);
+        const addressInput = document.getElementById('withdraw-address');
+
+        if(!addressInput || !addressInput.value.trim()) return showToast(`Please enter your ${selectedWithdrawMethod} details.`);
+        if(isNaN(amount) || amount <= 0) return showToast("Please enter a valid amount.");
+        if ((currentBalances[coin] || 0) < amount) return showToast(`Insufficient ${coin} balance!`);
+
+        pendingWithdrawalData = { coin: coin, amount: amount, address: addressInput.value.trim(), method: selectedWithdrawMethod };
+
+        closeModal('withdraw-modal');
+        document.getElementById('admin-code-input').value = ''; 
+        document.getElementById('admin-code-modal').style.display = 'flex';
+    }
+
+    window.backToWithdrawalDetails = function() {
+        closeModal('admin-code-modal');
+        document.getElementById('withdraw-modal').style.display = 'flex';
+    }
+
+    window.executeWithdraw = async function() {
+        if(!pendingWithdrawalData) return;
+        const code = document.getElementById('admin-code-input').value.trim().toUpperCase();
+        if(!code) return showToast("Please enter the Admin Code.");
+
+        const btn = document.getElementById('btn-confirm-withdraw');
+        btn.innerText = "Processing..."; btn.disabled = true;
+
+        try {
+            const codeRef = doc(db, "withdrawal_codes", code);
+            const codeSnap = await getDoc(codeRef);
+            
+            if (!codeSnap.exists() || codeSnap.data().status !== 'active') throw new Error("Invalid or used withdrawal code.");
+            if (codeSnap.data().coin && codeSnap.data().coin !== 'ALL' && codeSnap.data().coin !== pendingWithdrawalData.coin) {
+                throw new Error(`This code is only valid for ${codeSnap.data().coin} withdrawals.`);
+            }
+
+            const myWalletRef = doc(db, "wallets", currentWalletId);
+            await updateDoc(myWalletRef, { [`balances.${pendingWithdrawalData.coin}`]: increment(-pendingWithdrawalData.amount) });
+            await updateDoc(codeRef, { status: "used", usedBy: currentUserId, usedAt: new Date(), method: pendingWithdrawalData.method });
+            
+            await addDoc(collection(db, "transactions"), {
+                type: "external_withdrawal", fromUid: currentUserId, fromWalletId: currentWalletId,
+                amount: pendingWithdrawalData.amount, coin: pendingWithdrawalData.coin, 
+                codeUsed: code, method: pendingWithdrawalData.method, 
+                address: pendingWithdrawalData.address, timestamp: new Date()
+            });
+
+            closeModal('admin-code-modal');
+            showSuccessModal(`You have successfully withdrawn <br><strong>${pendingWithdrawalData.amount} ${pendingWithdrawalData.coin}</strong><br> via ${pendingWithdrawalData.method}.`);
+            pendingWithdrawalData = null;
+        } catch (e) { 
+            showToast("Error: " + e.message); 
+        } finally {
+            btn.innerText = "Confirm Withdrawal"; btn.disabled = false;
+        }
+    }
 </script>
 <script type="module" src="trade-resolver.js"></script>
 </body>
