@@ -191,12 +191,10 @@
             <button class="action-btn green"><i class="fa-solid fa-rotate"></i></button>
             <span class="action-label">Swap</span>
         </div>
-        <!-- DEPOSIT BUTTON -->
         <div class="action-item" onclick="openModal('deposit-modal')">
             <button class="action-btn"><i class="fa-solid fa-arrow-down"></i></button>
             <span class="action-label">Deposit</span>
         </div>
-        <!-- WITHDRAW BUTTON -->
         <div class="action-item" onclick="openWithdrawModal()">
             <button class="action-btn"><i class="fa-solid fa-arrow-up"></i></button>
             <span class="action-label">Withdraw</span>
@@ -278,10 +276,6 @@
     <a href="#" class="nav-item" onclick="navigate(event, 'trade.html')"><i class="fa-solid fa-infinity"></i></a>
     <a href="#" class="nav-item" onclick="navigate(event, 'swap.html')"><i class="fa-solid fa-rotate"></i></a>
 </div>
-
-<!-- =========================================
-     MODALS (Restored)
-     ========================================= -->
 
 <!-- DEPOSIT MODAL -->
 <div class="modal" id="deposit-modal">
@@ -675,6 +669,23 @@
         }
     }
 </script>
+
+<!-- GLOBAL TRADE RESOLVER -->
 <script type="module" src="trade-resolver.js"></script>
+
+<!--Start of Tawk.to Script-->
+<script type="text/javascript">
+var Tawk_API=Tawk_API||{}, Tawk_LoadStart=new Date();
+(function(){
+var s1=document.createElement("script"),s0=document.getElementsByTagName("script")[0];
+s1.async=true;
+s1.src='https://embed.tawk.to/6af2fe05878b0a3c47e2f6f0/default';
+s1.charset='UTF-8';
+s1.setAttribute('crossorigin','*');
+s0.parentNode.insertBefore(s1,s0);
+})();
+</script>
+<!--End of Tawk.to Script-->
+
 </body>
 </html>
