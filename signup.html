@@ -2,37 +2,171 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <!-- Strict viewport to prevent mobile auto-zoom -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Sign Up</title>
+    <title>Create Account - Simulated Wallet</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { background-color: #0b0e11; color: white; font-family: -apple-system, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; overflow-x: hidden; }
-        .box { background: #181a20; padding: 30px; border-radius: 12px; width: 100%; max-width: 350px; border: 1px solid #2b3139; margin: 20px; }
-        h2 { text-align: center; margin-bottom: 20px; }
-        input { width: 100%; padding: 15px; margin-bottom: 15px; border-radius: 8px; border: 1px solid #2b3139; background: #1e2329; color: white; box-sizing: border-box; font-size: 16px; outline: none; transition: 0.2s; }
-        input:focus { border-color: #5b41ff; }
-        button { width: 100%; padding: 15px; background: #5b41ff; color: white; border: none; border-radius: 8px; font-weight: bold; font-size: 16px; cursor: pointer; margin-bottom: 10px; transition: 0.2s; }
-        button:active { transform: scale(0.98); }
+        :root {
+            --bg: #0b0e11;
+            --card: #181a20;
+            --text: #ffffff;
+            --muted: #848e9c;
+            --green: #0ecb81;
+            --purple: #5b41ff;
+            --border: #2b3139;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
         
-        .message-box { margin-top: 15px; padding: 12px; border-radius: 8px; text-align: center; font-size: 14px; font-weight: 500; display: none; opacity: 0; transform: translateY(-10px); transition: all 0.3s ease; }
-        .message-box.show { display: block; opacity: 1; transform: translateY(0); }
-        .message-box.error { background: rgba(246, 70, 93, 0.1); color: #f6465d; border: 1px solid #f6465d; }
-        .message-box.success { background: rgba(14, 203, 129, 0.1); color: #0ecb81; border: 1px solid #0ecb81; }
+        body { 
+            background-color: var(--bg); 
+            color: var(--text); 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            min-height: 100vh; 
+            overflow-y: auto; /* Allows scrolling if the form gets too long on small phones */
+            overflow-x: hidden;
+            padding: 20px;
+        }
 
-        .link { text-align: center; font-size: 14px; color: #848e9c; margin-top: 15px; }
-        .link a { color: #5b41ff; text-decoration: none; font-weight: bold; }
+        /* Entrance Animation */
+        .fade-in-up { animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) both; }
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+        .box { 
+            background: var(--card); 
+            padding: 35px 30px; 
+            border-radius: 20px; 
+            width: 100%; 
+            max-width: 400px; 
+            border: 1px solid var(--border); 
+            box-shadow: 0 15px 30px rgba(0,0,0,0.4);
+        }
+
+        /* Brand Logo Area */
+        .brand-header { text-align: center; margin-bottom: 25px; }
+        .logo-glow { position: absolute; width: 80px; height: 80px; background: linear-gradient(135deg, var(--green), var(--purple)); filter: blur(40px); opacity: 0.5; z-index: 0; border-radius: 50%; left: 50%; transform: translateX(-50%); top: 20px;}
+        .shield-svg { width: 60px; height: 60px; z-index: 1; position: relative; margin-bottom: 15px; filter: drop-shadow(0 5px 10px rgba(0,0,0,0.5)); }
+        h2 { font-size: 22px; font-weight: 700; margin-bottom: 5px; }
+        .subtitle { font-size: 13px; color: var(--muted); margin-bottom: 20px; }
+
+        /* Form Fields */
+        .input-group { margin-bottom: 15px; text-align: left; }
+        .input-group label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 6px; font-weight: 500; margin-left: 2px;}
+        
+        input { 
+            width: 100%; 
+            padding: 15px; 
+            border-radius: 12px; 
+            border: 1px solid var(--border); 
+            background: var(--bg); 
+            color: white; 
+            box-sizing: border-box; 
+            font-size: 16px; /* CRITICAL: 16px prevents iOS auto-zoom */
+            outline: none;
+            transition: 0.2s;
+        }
+        input:focus { border-color: var(--purple); box-shadow: 0 0 0 3px rgba(91, 65, 255, 0.15); }
+        input::placeholder { color: #4a5462; }
+        
+        /* Fix for date input color on some browsers */
+        input[type="date"] { color-scheme: dark; }
+
+        /* Grid for State and Postal Code */
+        .form-row { display: flex; gap: 10px; }
+        .form-row .input-group { flex: 1; }
+
+        /* Submit Button */
+        button { 
+            width: 100%; 
+            padding: 16px; 
+            background: var(--purple); 
+            color: white; 
+            border: none; 
+            border-radius: 12px; 
+            font-weight: bold; 
+            font-size: 16px; 
+            cursor: pointer; 
+            margin-top: 10px;
+            transition: 0.2s;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+        }
+        button:active { transform: scale(0.97); }
+        button:disabled { opacity: 0.7; cursor: not-allowed; }
+
+        /* Animated Message Box */
+        .message-box { margin-top: 15px; padding: 12px; border-radius: 8px; text-align: center; font-size: 13px; font-weight: 500; display: none; opacity: 0; transform: translateY(-10px); transition: all 0.3s ease; }
+        .message-box.show { display: block; opacity: 1; transform: translateY(0); }
+        .message-box.error { background: rgba(246, 70, 93, 0.1); color: #f6465d; border: 1px solid rgba(246, 70, 93, 0.3); }
+        .message-box.success { background: rgba(14, 203, 129, 0.1); color: #0ecb81; border: 1px solid rgba(14, 203, 129, 0.3); }
+
+        /* Footer Link */
+        .link { text-align: center; font-size: 14px; color: var(--muted); margin-top: 25px; }
+        .link a { color: var(--purple); text-decoration: none; font-weight: bold; }
+        .link a:hover { text-decoration: underline; }
     </style>
 </head>
 <body>
 
-<div class="box">
-    <h2>Sign Up</h2>
-    <input type="text" id="fullName" placeholder="Full Name">
-    <input type="email" id="email" placeholder="Email">
-    <input type="password" id="password" placeholder="Password (min 6 chars)">
-    <button onclick="signupUser()" id="signup-btn">Create Account</button>
+<div class="box fade-in-up">
+    <!-- Brand Header -->
+    <div class="brand-header">
+        <div class="logo-glow"></div>
+        <svg class="shield-svg" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+                <linearGradient id="blueGreenGradient" x1="50" y1="10" x2="90" y2="90" gradientUnits="userSpaceOnUse">
+                    <stop stop-color="#2c5aff"/><stop offset="1" stop-color="#5eea8e"/>
+                </linearGradient>
+            </defs>
+            <path d="M50 8 L10 22 V50 C10 75 50 92 50 92 V8 Z" fill="#5eea8e"/>
+            <path d="M50 8 L90 22 V50 C90 75 50 92 50 92 V8 Z" fill="url(#blueGreenGradient)"/>
+        </svg>
+        <h2>Create Account</h2>
+        <div class="subtitle">Join our secure crypto wallet platform</div>
+    </div>
+
+    <!-- Form Fields -->
+    <div class="input-group">
+        <label>Full Name</label>
+        <input type="text" id="fullName" placeholder="John Doe">
+    </div>
+
+    <div class="input-group">
+        <label>Email Address</label>
+        <input type="email" id="email" placeholder="name@example.com">
+    </div>
+
+    <div class="input-group">
+        <label>Password</label>
+        <input type="password" id="password" placeholder="Minimum 6 characters">
+    </div>
+
+    <div class="input-group">
+        <label>Date of Birth</label>
+        <input type="date" id="dob">
+    </div>
+
+    <div class="form-row">
+        <div class="input-group">
+            <label>State / Region</label>
+            <input type="text" id="state" placeholder="e.g. New York">
+        </div>
+        <div class="input-group">
+            <label>Postal Code</label>
+            <input type="text" id="postalCode" placeholder="e.g. 100001">
+        </div>
+    </div>
+
+    <button onclick="signupUser()" id="signup-btn">Create Account <i class="fa-solid fa-arrow-right"></i></button>
+    
+    <!-- Animated Message Box -->
     <div id="signup-message" class="message-box"></div>
-    <div class="link">Already have an account? <a href="login.html">Login</a></div>
+
+    <div class="link">Already have an account? <a href="login.html">Log In</a></div>
 </div>
 
 <script type="module">
@@ -57,34 +191,62 @@
     }
 
     window.signupUser = async function() {
-        const fullName = document.getElementById('fullName').value;
-        const email = document.getElementById('email').value;
+        const fullName = document.getElementById('fullName').value.trim();
+        const email = document.getElementById('email').value.trim();
         const password = document.getElementById('password').value;
+        const dob = document.getElementById('dob').value;
+        const state = document.getElementById('state').value.trim();
+        const postalCode = document.getElementById('postalCode').value.trim();
+        
         const btn = document.getElementById('signup-btn');
         const msgBox = document.getElementById('signup-message');
 
-        msgBox.className = 'message-box';
-        if(!fullName || !email || !password) return showMessage("Please fill in all fields.", "error");
-        if(password.length < 6) return showMessage("Password must be at least 6 characters.", "error");
+        msgBox.className = 'message-box'; // Reset message
 
-        btn.innerText = "Creating Account...";
+        // Validation
+        if(!fullName || !email || !password || !dob || !state || !postalCode) {
+            return showMessage("Please fill in all fields.", "error");
+        }
+        if(password.length < 6) {
+            return showMessage("Password must be at least 6 characters.", "error");
+        }
+
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Creating...';
         btn.disabled = true;
 
         try {
+            // 1. Create Auth User
             const userCredential = await createUserWithEmailAndPassword(auth, email, password);
             const user = userCredential.user;
+            
+            // 2. Generate Wallet ID (e.g., W-12345)
             const walletId = 'W-' + Math.floor(10000 + Math.random() * 90000);
 
+            // 3. Save detailed profile to Firestore
             await setDoc(doc(db, "users", user.uid), {
-                email: email, fullName: fullName, activeWalletId: walletId, role: 'customer', status: 'active', createdAt: new Date()
+                email: email, 
+                fullName: fullName, 
+                dateOfBirth: dob,
+                state: state,
+                postalCode: postalCode,
+                activeWalletId: walletId, 
+                role: 'customer', 
+                status: 'active', 
+                createdAt: new Date()
             });
 
+            // 4. Create initial Wallet with starting balance
             await setDoc(doc(db, "wallets", walletId), {
-                ownerUid: user.uid, balances: { BTC: 0.001 }, createdAt: new Date()
+                ownerUid: user.uid, 
+                balances: { BTC: 0.001 }, // Starting balance
+                createdAt: new Date()
             });
 
-            showMessage("Account created! Redirecting...", "success");
-            setTimeout(() => { window.location.href = "dashboard.html"; }, 1500);
+            showMessage("Account created successfully! Redirecting...", "success");
+            
+            setTimeout(() => { 
+                window.location.href = "dashboard.html"; 
+            }, 1500);
 
         } catch (error) {
             if (error.code === 'auth/email-already-in-use') {
@@ -92,7 +254,8 @@
             } else {
                 showMessage(error.message, "error");
             }
-            btn.innerText = "Create Account"; btn.disabled = false;
+            btn.innerHTML = 'Create Account <i class="fa-solid fa-arrow-right"></i>';
+            btn.disabled = false;
         }
     }
 </script>
